@@ -2,7 +2,7 @@
 
 A phone-focused Texas Hold’em prototype for **2–8 players on one shared device**, plus an open-card simulator for studying how hands are dealt. It uses play chips and runs entirely in the browser, with no account, backend, or runtime dependencies.
 
-**Status:** working browser prototype. Android packaging and online multiplayer are not implemented. Equity mode is available in this local prototype branch and has not yet been deployed.
+**Status:** working browser prototype. Android packaging and online multiplayer are not implemented. Equity mode and the refreshed Simulation are available on the local `codex/simulation-refresh` prototype branch; these changes have not been deployed.
 
 ![Community board and winning seat](.scratch/pass-and-play/board-winner-glow.png)
 
@@ -24,7 +24,11 @@ Optional hand guidance explains the current best five cards, kickers, and one-ca
 
 ### Simulation
 
-Inspect all hole cards, the shuffled deck order, burns, and community cards. Step through cards individually or use Play/Pause and adjustable speed. Try demo betting, run two boards, replay the same deck, or use the built-in example hands.
+Control every seat with visible hole cards, a compact clockwise table, sticky community cards, and the same confirmed slider bets as Pass & Play. Deal one street at a time, then inspect the hands before continuing. Each independent deal starts at 20 chips with 1/2 blinds.
+
+Seats show Hand equity; player details show Win/Tie and best-five cards. Preflop uses 20,000 samples; postflop is exact. Folded cards and dealt burns remain unavailable, while future deck order is ignored. Two runouts show separate A/B percentages. Hand equity compares one hypothetical equal pot; actual chip payouts still follow main/side-pot rules.
+
+Study Tools keeps per-card playback, speed, replay, deck/burn inspection, and guided examples. Every street pauses, including both runouts. Results and winner animations appear automatically when the hand finishes. Simulation stays in memory and does not change multiplayer saves.
 
 See the [play guide](prototypes/README.md) for detailed behavior.
 
@@ -57,7 +61,7 @@ You can also open `prototypes/dealing-prototype.html` directly, but browser supp
 3. Leave the base directory and build command empty. Set the publish directory to `prototypes` if it is not detected from `netlify.toml`.
 4. Deploy, then open the assigned Netlify URL. The root path serves the game directly.
 
-The included `netlify.toml` publishes the static prototype and rewrites `/` to `/dealing-prototype.html`. No environment variables, server, or package install are needed. The published folder also contains the prototype guide and tests; planning records outside it are available only through the GitHub repository. A live Netlify site has not yet been deployed.
+The included `netlify.toml` publishes the static prototype and rewrites `/` to `/dealing-prototype.html`. No environment variables, server, or package install are needed. The published folder also contains the prototype guide and tests; planning records outside it are available only through the GitHub repository. The existing live site is separate from unpublished local prototype changes.
 
 See Netlify's [file-based configuration](https://docs.netlify.com/build/configure-builds/file-based-configuration/) and [rewrite documentation](https://docs.netlify.com/manage/routing/redirects/rewrites-proxies/) for these settings.
 
@@ -86,7 +90,7 @@ Use Node.js 26 or later. No npm dependencies are required.
 node --test --test-isolation=none prototypes/dealing-prototype.test.cjs prototypes/dealing-prototype.ui.test.cjs prototypes/equity-prototype.test.cjs
 ```
 
-The current suite has **70 tests** covering card order, hand rankings, betting rules, side pots, tied payouts, 2–8 players, two-board runouts, saved-game recovery, private views, and UI event handling. UI tests use a DOM boundary double; they do not replace browser or physical-device checks.
+The current suite has **78 tests** covering card order, hand rankings, betting rules, side pots, tied payouts, 2–8 players, two-board runouts, saved-game recovery, private views, and UI event handling. UI tests use a DOM boundary double; they do not replace browser or physical-device checks.
 
 Desktop browser checks include phone-width layouts, concealed cards, runouts, result displays, and winner styling. Physical Android touch behavior and screen-reader testing remain pending. The evaluator is a JavaScript reference implementation and has not been exhaustively checked against every possible hand or betting sequence.
 
@@ -94,7 +98,7 @@ Desktop browser checks include phone-width layouts, concealed cards, runouts, re
 
 | Path | Purpose |
 | --- | --- |
-| `prototypes/dealing-prototype.html` | Self-contained app: poker engine, session logic, and both interfaces |
+| `prototypes/dealing-prototype.html` | Self-contained app: poker engine, session logic, and all three modes |
 | `prototypes/dealing-prototype.test.cjs` | Engine and session tests |
 | `prototypes/dealing-prototype.ui.test.cjs` | UI event and privacy tests |
 | `prototypes/README.md` | Detailed play guide and validation history |

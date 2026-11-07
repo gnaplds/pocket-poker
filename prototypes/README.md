@@ -1,6 +1,6 @@
 # Pocket Poker prototype
 
-Open [dealing-prototype.html](dealing-prototype.html) in a browser. It is one self-contained file, with no dependencies or outgoing network requests. It now includes the accepted Simulation and the approved Pass & Play extension. Android packaging is deferred. This local branch adds Equity mode; it has not been published.
+Open [dealing-prototype.html](dealing-prototype.html) in a browser. It is one self-contained file, with no dependencies or outgoing network requests. It now includes the accepted Simulation and the approved Pass & Play extension. Android packaging is deferred. This local branch adds Equity mode and refreshes Simulation; these changes have not been published.
 
 For a stable browser origin and local saves, run from the repository root:
 
@@ -32,9 +32,15 @@ The public UI omits hidden identities from cards, animations, logs, accessible l
 
 ## Simulation
 
-Simulation keeps the original all-visible deck, burn list, card-by-card record, rankings, editable names, demo betting, Next Card, Play/Pause, speed, and guided examples. Seats now use the same clockwise order as multiplayer. It has a separate deck and cannot inspect the saved multiplayer hand.
+Choose **Play → Simulation**, then **Deal Hole Cards**. Control all players directly; their cards remain visible. Use the one-chip Min–Max slider and confirm each betting decision. Once a round ends, choose **Deal Flop/Turn/River**. The table scrolls into view before cards move, and every street pauses, including two-runout hands.
 
-Every simulation reset starts equal 20-chip stacks with the button at Seat 1. Disable Demo betting for observer-only dealing. The fixed walkthroughs select that mode automatically. Runout branching remains available preflop, after the flop, or after the turn; betting mode first requires completed all-in action.
+Each seat shows cards, category, action, and Hand equity. Player sections below add Win/Tie and best-five cards. Calculations ignore future deck order, exclude all dealt hands and burns, and remove folded players from competition. A/B odds also exclude revealed non-shared cards on the other board. They compare a hypothetical equal pot, not actual chip returns. Preflop samples 20,000 boards; postflop enumerates all remaining boards. Cancel hides unfinished results; Calculate again retries. Play remains available while calculating.
+
+Every new deal resets to equal 20-chip stacks, 1/2 blinds, and the button at Seat 1. Replay uses the original deck unchanged. Replacing an unfinished deal asks for confirmation. New Deal/Replay prepare the deck and wait for Deal Hole Cards. Simulation persists only across mode changes during the current visit; reload starts fresh.
+
+Study Tools contains Next Card, Play/Pause, speed, Replay, deck order, burns, deal records, and guided examples. Disable Demo betting for deal-only practice. Run It Twice is chosen directly at a legal stage pause; betting mode first requires all owed decisions to finish with no further betting possible. There are no votes or private handoffs.
+
+Normal river betting, final all-in runouts, and fold wins finish automatically. Completed-board winners stay visible beside A/B; all pots pay once when the hand finishes. Winner popup, confetti, and seat glow respect reduced motion. History stays open and groups actions by street and board.
 
 ## Validation
 
@@ -110,3 +116,12 @@ Try these manual review cases:
 Validation: all 70 tests pass (47 engine/session, 18 UI boundary, 5 equity calculation). The generated worker source also executes against the real evaluator in a VM boundary test. All five inline scripts parse. A local HTTP check returns 200 and the served HTML matches the working file. Measured on this machine: roughly 2.3 seconds for two-player preflop sampling, 8.8 seconds for eight players, and 0.18 seconds for the exact two-player flop test including other assertions. These are Node measurements, not browser or phone benchmarks.
 
 Browser control was disabled in Work settings for this pass. Live worker startup, card-picker focus/scroll, phone layout, physical touch speed, screen-reader behavior, and Netlify deployment remain unverified. There are no new runtime dependencies or server requests. The branch is local and has not been pushed.
+
+
+## Simulation refresh validation — 2026-11-08
+
+Local branch: `codex/simulation-refresh`. All 78 tests pass: 47 engine/session, 24 UI-boundary, and 7 equity tests. Added checks cover dead cards, shared-prefix boards, fold wins, street pauses, slider confirmations, cancellation/error recovery, replay, partial-flop controls, and multiplayer-save isolation.
+
+The in-app browser completed real worker calculations, preflop betting, and an eight-player two-board all-in hand with automatic payouts. At an observed 401 CSS-pixel viewport, 2/6/7/8-player layouts had no seat overlaps; the measured two-board eight-seat table was about 604 pixels high with both categories visible. Two/six-seat preflop tables were about 396 pixels and seven-seat preflop about 479 pixels. These are content-dependent observations, not fixed heights or phone performance guarantees. A sticky-scroll defect found in the browser was fixed by scrolling to an anchor above the board.
+
+Physical Android speed/touch use and screen-reader behavior still require testing. No GitHub push or deployment was made. Earlier validation sections above describe earlier passes.

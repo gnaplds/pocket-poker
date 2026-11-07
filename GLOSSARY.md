@@ -49,6 +49,9 @@ One distribution of hole cards and community cards from a shuffled deck. A hand 
 **Burn card**:
 A card set aside before dealing a community-card stage. It is not part of any player's hand or board.
 
+**Known dead card**:
+A card known to be unavailable for a future board and unable to contribute to an eligible player's hand on that board. In Simulation, this includes dealt burn cards and folded players' hole cards.
+
 **Street**:
 A stage of a Hold’em hand: preflop, flop, turn, or river.
 
@@ -144,6 +147,9 @@ A player has committed their entire available stack and cannot make further bets
 
 **Equity**:
 The expected fraction of a shared pot a player receives across possible final boards, including their share of tied outcomes.
+
+**Hand equity**:
+A player's equity when all non-folded hands compete for one hypothetical equally shared pot. It describes hand strength across possible boards, not the player's expected chip payout from actual bets or side pots.
 
 **Win probability**:
 The probability that a player is the sole winner on the final board.

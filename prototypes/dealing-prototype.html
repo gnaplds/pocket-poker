@@ -12,26 +12,34 @@
 <dialog id="winner-popup" aria-labelledby="winner-title"><div class="winner-emblem" aria-hidden="true">♠</div><h2 id="winner-title">Hand complete</h2><div id="winner-summary"></div><button id="winner-continue" class="primary" autofocus>Continue</button></dialog>
 <dialog id="equity-picker" aria-labelledby="eq-picker-title"></dialog>
 <dialog id="equity-confirm" aria-labelledby="eq-remove-title"><h2 id="eq-remove-title">Remove entered cards?</h2><p id="eq-remove-text"></p><div class="action-row"><button id="eq-remove-cancel">Keep cards</button><button id="eq-remove-confirm">Remove cards</button></div></dialog>
+<dialog id="sim-confirm" aria-labelledby="sim-confirm-title"><h2 id="sim-confirm-title">Confirm simulation action</h2><p id="sim-confirm-text"></p><div class="action-row"><button id="sim-confirm-no" autofocus>Go back</button><button id="sim-confirm-yes" class="primary">Confirm</button></div></dialog>
 <main id="pocket-app" class="pocket-app"></main>
-<div class="wrap" id="simulation" hidden>
-<header><div><div class="eyebrow">A visible deck. Every card accounted for.</div><h1>Poker Lab</h1></div><span class="tag">THROWAWAY PROTOTYPE</span></header>
-<button id="simulation-menu">Back to modes</button><p class="intro">Follow each card from the shuffled deck to a player, a burn, or a board. Try two runs and inspect every player's best hand. Control every seat with 20 demo chips and 1/2 blinds, or switch to deal-only mode. Simulation is separate from your saved multiplayer game.</p>
-<div class="setup"><label for="player-count">Players</label><select id="player-count"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option><option>7</option><option>8</option></select><button id="shuffle">Shuffle &amp; new deal</button><button id="replay">Replay same deck</button><label class="check"><input id="betting-mode" type="checkbox" checked>Demo betting</label><label class="check"><input id="reduce" type="checkbox">Reduced motion</label></div>
-<details class="panel"><summary>Player names &amp; position guide</summary><div id="name-editor" class="name-editor"></div><p class="minor">BTN = button, SB = small blind, BB = big blind, UTG = under the gun, HJ = hijack, CO = cutoff. Short-handed seats can have overlapping names; at six seats HJ is also one seat after UTG (UTG+1).</p></details>
+<dialog id="sim-winner" aria-labelledby="sim-winner-title"><h2 id="sim-winner-title">Hand complete</h2><div id="sim-winner-summary"></div><button id="sim-winner-close" class="primary">Continue</button></dialog>
+<div class="wrap pocket-app" id="simulation" hidden>
+<header class="game-top"><div><strong class="brand-small">Pocket Poker</strong><small>Simulation · working prototype</small></div><button id="simulation-menu">Modes</button></header>
+<p class="intro">Control every seat with visible cards. Explore street-by-street betting and Hand equity, then replay the same deal to compare your choices.</p>
+<div class="setup"><label for="player-count">Players</label><select id="player-count"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option><option>7</option><option>8</option></select><button id="shuffle">New Deal</button><label class="check"><input id="betting-mode" type="checkbox" checked>Demo betting</label></div>
+<details class="panel"><summary>Player names &amp; positions</summary><div id="name-editor" class="name-editor"></div><p class="minor">Seats stay clockwise. The button starts at Seat 1 for each independent deal.</p></details>
+<div id="sim-table-start"></div>
+<section id="sim-community" class="mp-board" aria-label="Simulation community cards"><div class="pot-strip"><strong id="sim-pot">Pot 3</strong><span id="stage"></span></div><div id="boards"></div></section>
+<section id="players" class="players mp-oval large-table" aria-label="Clockwise simulation seats"></section>
+<p id="table-foot" class="minor"></p>
 <div class="notice" id="notice" role="status" aria-live="polite"></div>
-<div class="layout"><main>
-<section class="table" aria-label="Poker table">
-<div class="table-head"><div class="deck-zone"><div id="deck-source" class="deck-stack" aria-label="Top of deck"></div><div class="deck-label"><strong id="remaining">52</strong> cards left<br><span id="next-label">Ready to deal</span></div></div><div class="burn-zone"><div id="burn-target" class="burn-slot">B</div><span id="burn-count" class="deck-label">0 burns</span></div><div class="table-status" id="stage"></div></div>
-<div class="boards" id="boards"></div><div class="players" id="players"></div><div class="table-foot" id="table-foot"></div>
-</section>
-<section class="panel" id="betting-panel" style="margin-top:18px"></section>
-<section class="panel" style="margin-top:18px"><h2>Hand rankings</h2><div id="results" class="results"></div><div class="minor">Rankings use each player's best five cards. Equal categories can still differ by card rank or kicker. Suits never break ties.</div></section>
+<div class="action-row"><button id="sim-deal" class="primary">Deal Hole Cards</button><button id="twice">Run It Twice</button></div>
+<section class="turn-box" id="betting-panel"></section>
+<section id="sim-equity-status" class="minor" aria-live="polite"></section>
+<section class="hand-summary"><h2>Player details</h2><div id="results"></div></section>
+<details id="study-tools" class="panel"><summary>Study Tools</summary>
+<div id="simulation-dock" hidden><div class="action-row"><button id="next">Next Card</button><button id="play">Play</button></div><label class="speed" for="speed">Speed <select id="speed"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select></label><button id="replay">Replay Same Deck</button><label class="check"><input id="reduce" type="checkbox">Reduced motion</label></div>
 <section class="panel guides"><h2>Guided walkthroughs</h2><p class="minor">These fixed examples switch to deal-only mode. Enable Demo betting again for a fresh 20-chip hand.</p><div class="tabs" role="tablist" aria-label="Walkthrough"><button role="tab" aria-selected="true" data-guide="normal">One board</button><button role="tab" aria-selected="false" data-guide="twice">Two runs after flop</button><button role="tab" aria-selected="false" data-guide="tie">A shared winner</button><button role="tab" aria-selected="false" data-guide="boundary">Wrong moment</button></div><div id="guide" role="tabpanel"></div></section>
-<details class="panel"><summary>Card-by-card deal record</summary><p class="minor">The number is the card's position in the original shuffled deck. Shared board cards appear once in this record.</p><ol id="log" class="log"></ol></details>
-</main><aside class="panel deck-panel"><h2>Deck order <span class="tag">TOP → BOTTOM</span></h2><div class="stats" id="stats"></div><p class="deck-legend">Outlined = next card. Faded = already dealt or burned. All cards are visible for study; this is an observer view.</p><div id="deck-grid" class="deck-grid"></div><details><summary>Burn cards</summary><div id="burn-list"></div></details></aside></div>
-<footer>Working behavior prototype · in-memory only · JavaScript reference evaluator, not poker.net · button fixed at Seat 1 for comparison. Every new deal starts with 20 chips per player.<br>Pause lets the moving card land, then stops. Shuffle and replay reset the deal. Two runs finish Board A before Board B, with a burn before each new street.</footer>
+
+<details><summary>Card-by-card deal record</summary><ol id="log" class="log"></ol></details>
+<h3>Deck order · top to bottom</h3><div class="stats" id="stats"></div><p class="minor">Future deck order is visible for study but is ignored by Hand equity.</p><div id="deck-grid" class="deck-grid"></div><details><summary>Burn cards</summary><div id="burn-list"></div></details>
+</details>
+<section id="sim-history" class="public-history" aria-label="Betting history"></section>
+<div id="sim-celebration"></div>
+<footer>In-memory prototype · independent 20-chip deals · 1/2 blinds · fixed starting button. Replay preserves the original deck order. Pass &amp; Play saves stay separate.</footer>
 </div>
-<div class="dock" id="simulation-dock" hidden><div class="dock-inner"><button id="next" class="primary">Next card</button><button id="play">Play</button><button id="twice">Run it twice</button><div class="spacer"></div><label class="speed" for="speed">Speed <select id="speed"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select></label></div></div>
 
 <script id="poker-engine">
 var Poker = (() => {
@@ -285,13 +293,15 @@ var Poker = (() => {
 </script>
 <script id="equity-engine">
 var Equity=(()=>{
-  function validate({hands,board}){
+  function validate({hands,board,dead=[]}){
     if(!Array.isArray(hands)||hands.length<2||hands.length>8||hands.some(h=>!Array.isArray(h)||h.length!==2)||!Array.isArray(board)||![0,3,4,5].includes(board.length))throw Error('Enter two cards per player and a complete board stage.');
-    const known=[...hands.flat(),...board];
+    if(!Array.isArray(dead))throw Error("Invalid unavailable cards.");
+    const known=[...hands.flat(),...board,...dead];
     if(new Set(known).size!==known.length||known.some(c=>!Poker.fullDeck().includes(c)))throw Error('Use distinct valid cards.');
   }
   function* calculate(input,randomBelow){
-    validate(input);const {hands,board}=input,deck=Poker.fullDeck().filter(c=>!hands.flat().includes(c)&&!board.includes(c));
+    validate(input);const {hands,board,dead=[]}=input,deck=Poker.fullDeck().filter(c=>!hands.flat().includes(c)&&!board.includes(c)&&!dead.includes(c));
+    if(deck.length<5-board.length)throw Error("Not enough cards for a board.");
     const exact=board.length>0,total=!exact?20000:board.length===3?deck.length*(deck.length-1)/2:board.length===4?deck.length:1;
     const sums=hands.map(()=>({equity:0,win:0,tie:0}));let completed=0;
     function add(finalBoard){
@@ -313,7 +323,18 @@ var Equity=(()=>{
     }
     yield report();
   }
-  return {validate,calculate};
+  function* simulation({hands,boards,folded,burns},randomBelow){
+    if(!Array.isArray(boards)||boards.length<1||boards.length>2||!Array.isArray(folded)||folded.length!==hands.length||folded.some(f=>typeof f!=='boolean')||!Array.isArray(burns))throw Error('Invalid visible deal.');
+    const seats=hands.flatMap((h,i)=>folded[i]?[]:[i]);
+    if(!seats.length)throw Error('A hand needs an eligible player.');
+    for(let j=0;j<boards.length;j++){
+      const board=boards[j],dead=[...new Set([...hands.flatMap((h,i)=>folded[i]?h:[]),...burns,...boards.flat()])].filter(c=>!board.includes(c));
+      validate({hands,board,dead:[...burns,...new Set(boards.flat().filter(c=>!board.includes(c)))]});
+      if(seats.length===1){yield {exact:true,done:true,completed:1,total:1,players:[{equity:1,win:1,tie:0}],board:j,seats};continue;}
+      for(const result of calculate({hands:seats.map(i=>hands[i]),board,dead},randomBelow))yield {...result,board:j,seats};
+    }
+  }
+  return {validate,calculate,simulation};
 })();
 </script>
 <script id="poker-session">
@@ -372,7 +393,7 @@ var Match=(()=>{
     const streets=[{stage:'preflop',board:0},...g.log.filter(e=>e.kind==='board'&&e.end)];
     return streets.map(({stage,board})=>{
       const size={preflop:0,flop:3,turn:4,river:5}[stage];
-      return {label:stage[0].toUpperCase()+stage.slice(1)+(g.twice&&size>g.shared?' · '+(board?'B':'A'):''),actions:copy(g.betting.history.filter(a=>a.stage===stage&&a.board===board))};
+      return {label:stage[0].toUpperCase()+stage.slice(1)+(g.twice&&size>g.shared?' · '+(board?'B':'A'):''),actions:copy((g.betting?.history||[]).filter(a=>a.stage===stage&&a.board===board))};
     });
   }
   function view(s){
@@ -421,7 +442,7 @@ var Match=(()=>{
     s.phase=s.game.betting.settled?'result':s.game.stage==='showdown'?'showdown':s.voters?'handoff':s.game.betting.actor!==null?(raw.phase==='public'?'public':'handoff'):'public';
     return s;
   }
-  return {start,command,view,save,restore};
+  return {start,command,view,save,restore,historyRounds};
 })();
 </script>
 <script>
@@ -453,8 +474,8 @@ const names=Array.from({length:8},(_,i)=>'Player '+(i+1));
 const name=i=>names[i]||('Player '+(i+1));
 const safe=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let state=Poker.create(4,shuffled(),true),playing=false,busy=false,guideBusy=false,playbackId=0;
-let notice='20 chips each; 1/2 blinds posted. Alex has the button. Deal the hole cards, then control the highlighted player.';
-let guideKey='normal',guideStep=0;
+let notice='20 chips each; 1/2 blinds posted. Player 1 has the button. Deal the hole cards, then control the highlighted player.';
+let guideKey='normal',guideStep=0,simPending=null,simPendingCancel=null,simPaused=false,simCelebrated=false;
 $('reduce').checked=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const speed=()=>Number($('speed').value);
 const waiting=()=>state.betting?.actor!==null&&state.betting?.actor!==undefined;
@@ -464,31 +485,96 @@ const activeResult=board=>{
   if(state.betting){const eligible=r.hands.flatMap((h,i)=>state.betting.folded[i]?[]:[i]);const max=Math.max(...eligible.map(i=>r.hands[i].score));r.winners=eligible.filter(i=>r.hands[i].score===max);}
   return r;
 };
+const simEquity={key:'',status:'incomplete',results:[],error:''};
+let simWorker=null,simJob=0;
+function simulationVisible(){return {hands:state.hands,boards:state.boards,folded:state.betting?.folded||state.hands.map(()=>false),burns:state.burns.map(b=>b.card)};}
+function stopSimulationEquity(status){
+  simJob++;simWorker?.terminate();simWorker=null;
+  if(status||simEquity.status==='running'){simEquity.status=status||'cancelled';simEquity.results=[];}
+}
+function syncSimulationEquity(){
+  if($('simulation').hidden)return;
+  if(state.hands.some(h=>h.length!==2)||state.queue.length||busy){renderSimulationEquity();return;}
+  const key=JSON.stringify(simulationVisible());
+  if(key!==simEquity.key){simEquity.key=key;startSimulationEquity();}else renderSimulationEquity();
+}
+function startSimulationEquity(){
+  stopSimulationEquity('running');simEquity.error='';renderSimulationEquity();
+  const id=simJob,visible=simulationVisible();
+  if(visible.folded.filter(f=>!f).length===1){simEquity.results=[...Equity.simulation(visible)];simEquity.status='complete';renderSimulationEquity();return;}
+  let url;
+  try{
+    const source=$('poker-engine').textContent+'\n'+$('equity-engine').textContent+'\n'+randomBelow.toString()+`\nonmessage=({data})=>{try{for(const result of Equity.simulation(data.visible,randomBelow))postMessage({id:data.id,result});}catch(e){postMessage({id:data.id,error:e.message});}};`;
+    url=URL.createObjectURL(new Blob([source],{type:'text/javascript'}));simWorker=new Worker(url);
+    simWorker.onmessage=({data})=>{
+      if(id!==simJob||data.id!==id||$('simulation').hidden||simEquity.status!=='running')return;
+      if(data.error){fail(data.error);return;}
+      simEquity.results[data.result.board]=data.result;
+      if(simEquity.results.filter(r=>r?.done).length===visible.boards.length){simEquity.status='complete';simWorker.terminate();simWorker=null;}
+      renderSimulationEquity();
+    };
+    simWorker.onerror=()=>fail('Hand equity could not finish. Try calculating again.');
+    simWorker.postMessage({id,visible});
+  }catch(e){fail('Hand equity is unavailable: '+e.message);}finally{if(url)URL.revokeObjectURL(url);}
+  function fail(message){if(id!==simJob)return;stopSimulationEquity('error');simEquity.error=message;renderSimulationEquity();}
+}
+function simulationPercent(i,details=false){
+  if(state.betting?.folded[i])return 'Folded';
+  return state.boards.map((_,j)=>{
+    const r=simEquity.results[j],p=r?.players?.[r.seats.indexOf(i)],pct=n=>(r.exact?'':'≈ ')+(n*100).toFixed(1)+'%';
+    return `<div>${state.twice?(j?'B':'A')+': ':''}${p?'<strong>'+pct(p.equity)+'</strong>':'—'} ${details?'Hand equity':state.twice?'':'equity'}${details&&p?'<br>Win '+pct(p.win)+' · Tie '+pct(p.tie):''}</div>`;
+  }).join('');
+}
+function renderSimulationEquity(){
+  const status=$('sim-equity-status');
+  const text=simEquity.status==='incomplete'?'Hand equity appears after the hole cards are dealt.':simEquity.status==='dealing'?'Hand equity waits for the completed street.':simEquity.status==='cancelled'?'Calculation cancelled.':simEquity.status==='error'?simEquity.error:simEquity.results.map((r,j)=>r?`Board ${j?'B':'A'} · ${r.exact?(r.done?'Exact':'Enumerating'):'Estimated'} · ${r.completed.toLocaleString()} / ${r.total.toLocaleString()} boards`:'').join(' · ')||'Calculating hand equity…';
+  const action=simEquity.status==='running'?'cancel':['cancelled','error'].includes(simEquity.status)?'retry':'';
+  if(status.dataset.action===action&&$('sim-equity-progress'))$('sim-equity-progress').textContent=text;
+  else {status.dataset.action=action;status.innerHTML=`<p id="sim-equity-progress">${safe(text)}</p>${action?`<button id="sim-equity-${action}">${action==='cancel'?'Cancel calculation':'Calculate again'}</button>`:''}<p>Hand equity compares all non-folded hands in one equal pot, not actual chip payouts or side pots. Estimates may vary.</p>`;}
+  state.hands.forEach((_,i)=>{if($('sim-equity-seat-'+i))$('sim-equity-seat-'+i).innerHTML=simulationPercent(i);if($('sim-equity-detail-'+i))$('sim-equity-detail-'+i).innerHTML=simulationPercent(i,true);});
+  if(action==='cancel')$('sim-equity-cancel').onclick=()=>{stopSimulationEquity();renderSimulationEquity();};
+  if(action==='retry')$('sim-equity-retry').onclick=startSimulationEquity;
+}
 function destination(e) {
   return e.kind==='hole'?name(e.player):e.kind==='burn'?`burn before ${e.stage} · Board ${e.board?'B':'A'}`:`${e.stage} · Board ${e.board?'B':'A'}`;
 }
-function resultsHTML() {
-  return state.boards.map((board,b)=>{
-    const r=activeResult(board);
-    if(!r&&state.betting?.settled) return `<div class="board-verdict">${state.betting.awards.flatMap((v,i)=>v?[safe(name(i))]:[]).join(', ')} wins without showdown. All other players folded.</div>`;
-    if(!r) return `<div class="minor">Board ${b?'B':'A'}: finish the flop to see five-card hand rankings.</div>`;
-    const final=board.length===5&&(!state.betting||state.betting.settled);
-    return `<div class="results-board"><div class="board-verdict"><strong>Board ${b?'B':'A'}</strong> · ${final?(r.winners.length>1?'Tied winners: ':'Winner: ')+r.winners.map(i=>safe(name(i))).join(', '):'Current hands · '+(board.length===3?'flop':board.length===4?'turn':'river betting')+' · not final'}</div>`+
-      r.hands.map((h,i)=>`<div class="result-row"><div class="result-name"><strong>${safe(name(i))}${state.betting?.folded[i]?' · folded':''}</strong><span class="result-label">${h.category}</span>${final&&!state.betting?.folded[i]&&r.winners.includes(i)?'<br><span class="tag">'+(r.winners.length>1?'TIED WINNER':'WINNER')+'</span>':''}</div><div class="best-cards" aria-label="Best five cards">${h.cards.map(c=>card(c,'small-card')).join('')}</div></div>`).join('')+'</div>';
-  }).join('');
+function replaceSimulation(action){
+  if(state.stage==='complete'||(!state.cursor&&!(state.betting?.history.length>2)))return action();
+  playing=false;playbackId++;
+  return new Promise(resolve=>simConfirm(async()=>{await action();resolve(true);},'Replace this unfinished practice deal? Its cards and bets will be reset.',()=>resolve(false)));
 }
+function simBoardVerdict(j){
+  if(state.boards[j].length!==5||waiting())return '';
+  const pots=state.betting?Poker.potResults(state):null;
+  if(pots)return '<div class="board-verdict">'+pots.map((p,k)=>{const share=p.shares[j];return share?`<div>${k?'Side pot '+k:'Main pot'} · ${share.winners.map(i=>safe(name(i))).join(' &amp; ')} ${share.winners.length>1?'tie':'wins'} · ${share.amount} chips</div>`:'';}).join('')+(state.stage!=='complete'?'<small>Paid when both boards finish.</small>':'')+'</div>';
+  const r=activeResult(state.boards[j]);return '<div class="board-verdict">'+r.winners.map(i=>safe(name(i))).join(' &amp; ')+(r.winners.length>1?' tie':' wins')+'</div>';
+}
+function resultsHTML(){
+  return state.hands.map((h,i)=>`<details class="player-result" open><summary><strong>${safe(name(i))}</strong>${state.betting?.folded[i]?' · Folded':''}</summary><div class="hole-cards">${[0,1].map(j=>card(h[j])).join('')}</div><div id="sim-equity-detail-${i}"></div>${state.boards.map((board,j)=>{const r=activeResult(board);return r?`<h3>${state.twice?'Board '+(j?'B':'A')+' · ':''}${r.hands[i].category}</h3><small>Best five cards</small><div class="best-cards">${r.hands[i].cards.map(c=>card(c,'small-card')).join('')}</div>`:'<p class="minor">Complete the flop to see the best five cards.</p>';}).join('')}</details>`).join('');
+}
+function celebrateSimulation(){
+  if(state.stage!=='complete'||simCelebrated||$('simulation').hidden)return;
+  simCelebrated=true;
+  const winners=state.betting?state.betting.awards.flatMap((v,i)=>v?[i]:[]):[...new Set(state.boards.flatMap(b=>activeResult(b).winners))];
+  $('sim-winner-summary').innerHTML='<p>'+winners.map(i=>safe(name(i))).join(' &amp; ')+(winners.length===1?' wins':' share the wins')+'</p>'+state.boards.map((_,j)=>simBoardVerdict(j)?'<h3>Board '+(j?'B':'A')+'</h3>'+simBoardVerdict(j):'').join('');
+  $('sim-winner').showModal();
+  if(!$('reduce').checked)$('sim-celebration').innerHTML=`<div class="hand-confetti" aria-hidden="true">${Array.from({length:36},(_,i)=>`<i style="--x:${i*37%100}%;--drift:${(i%7-3)*30}px;--delay:${i%8*.06}s;--spin:${180+i*29}deg;--color:${['#d4a52b','#4169e1','#c42f3d','#288362'][i%4]}"></i>`).join('')}</div>`;
+}
+$('sim-winner-close').onclick=()=>{$('sim-winner').close();$('sim-celebration').innerHTML='';$('shuffle').focus();};
+
 function render() {
+  $('simulation').dataset.reduced=String($('reduce').checked);$('sim-winner').style.animation=$('reduce').checked?'none':'';
   $('notice').textContent=notice;
-  $('remaining').textContent=52-state.cursor;
-  $('next-label').textContent=state.cursor<52?'Next: '+cardText(state.deck[state.cursor]):'Deck empty';
-  $('burn-count').textContent=state.burns.length+' burns';
+  $('sim-pot').textContent=state.betting?'Pot '+state.betting.pot:'Deal-only mode';
   $('stage').innerHTML=(state.twice?'TWO RUNS':'ONE BOARD')+'<br>'+({dealing:'Hole cards',preflop:'Before flop',flop:'Flop',turn:'Turn',river:'River betting',complete:'Hand complete'}[state.stage]||state.stage)+(state.queue.length&&state.stage!=='dealing'?' · dealing':'');
-  $('boards').innerHTML=state.boards.map((b,j)=>`<div class="board-line"><div class="board-name">Board ${j?'B':'A'}${state.twice&&state.shared?'<br><small>'+state.shared+' shared</small>':''}</div><div class="board-cards">${Array.from({length:5},(_,i)=>card(b[i],i<state.shared?'shared':'',`board-${j}-${i}`)).join('')}</div></div>`).join('');
+  $('boards').innerHTML=state.boards.map((b,j)=>`<div class="board-line"><div class="board-name">${j?'B':'A'}${state.twice&&state.shared?'<br><small>'+state.shared+' shared</small>':''}</div><div class="board-cards">${Array.from({length:5},(_,i)=>card(b[i],i<state.shared?'shared':'',`board-${j}-${i}`)).join('')}</div></div>${simBoardVerdict(j)}`).join('');
   const allResults=state.boards.map(activeResult);
-  $('players').innerHTML=state.hands.map((h,i)=>{
+  $('players').innerHTML=`<div class="mp-center"><div id="deck-source" class="deck-stack"></div><span id="burn-target" class="burn-slot">${state.burns.length}</span><p><strong id="remaining">${52-state.cursor}</strong> in deck</p></div>`+state.hands.map((h,i)=>{
     const winner=state.betting?.settled&&state.betting.awards[i]>0||(!state.betting||state.betting.settled)&&allResults.some((r,b)=>r&&state.boards[b].length===5&&r.winners.includes(i));
+    const action=state.betting?.actions[i],color=action?.kind==='all'?'gold':action?.kind==='fold'?'red':action?.kind==='raise'?'blue':action?.kind==='call'&&state.betting.paid[i]===state.betting.currentBet?'green':'neutral';
+    const angle=(90+i*360/state.players)*Math.PI/180,grid=state.players>6?'':`grid-column:${Math.cos(angle)<-.1?1:Math.cos(angle)>.1?3:2};grid-row:${Math.sin(angle)<-.1?1:Math.sin(angle)>.1?3:2}`;
     const labels=allResults.map((r,b)=>r?`${state.twice?(b?'B: ':'A: '):''}${r.hands[i].category}`:'').filter(Boolean);
-    return `<div class="seat ${winner?'winner':''} ${state.betting?.actor===i?'acting':''} ${state.betting?.folded[i]?'folded':''}" style="${seatStyle(i,state.players)}"><div class="seat-name">${safe(name(i))}${i===0?'<span class="dealer" title="Dealer button">D</span>':''}</div><div class="seat-position">${Poker.positions(state.players)[i]}</div><div class="hole-cards">${[0,1].map(j=>card(h[j],'',`hole-${i}-${j}`)).join('')}</div><div class="seat-stack">${state.betting?(state.betting.folded[i]?'Folded':state.betting.stacks[i]===0?'All-in':state.betting.stacks[i]+' chips')+' · in round: '+state.betting.paid[i]:''}</div><div class="seat-cat">${labels.join('<br>')||'Waiting for flop'}</div></div>`;
+    return `<div class="seat mp-seat action-${color} ${winner?'seat-winner':''} ${state.betting?.actor===i?'acting':''} ${state.betting?.folded[i]?'folded':''}" style="${seatStyle(i,state.players)};${grid}"><div class="seat-name">${safe(name(i))}${i===0?'<span class="dealer" title="Dealer button">D</span>':''}</div><div class="seat-position">${Poker.positions(state.players)[i]}</div><div class="hole-cards">${[0,1].map(j=>card(h[j],'',`hole-${i}-${j}`)).join('')}</div><div class="seat-stack">${state.betting?state.betting.stacks[i]+' chips'+(action?'<br>'+safe(action.text):state.betting.paid[i]?' · '+state.betting.paid[i]+' in':''):''}</div><div class="seat-cat">${labels.join('<br>')||'Waiting for flop'}</div><div id="sim-equity-seat-${i}" class="sim-equity-seat"></div></div>`;
   }).join('');
   $('table-foot').textContent=state.twice?(state.shared?'Dotted cards are shared, not drawn twice. ':'')+'Finish Board A, then Board B.':'Two clockwise passes • burn before every new street';
   $('results').innerHTML=resultsHTML();
@@ -496,17 +582,21 @@ function render() {
   $('deck-grid').innerHTML=state.deck.map((c,i)=>`<div class="deck-item ${i<state.cursor?'used':i===state.cursor?'next':''}" title="${i+1}. ${cardName(c)}${i<state.cursor?' → '+safe(destination(state.log[i])):''}"><div>${i+1}${i===state.cursor?' ↓':''}</div>${card(c)}</div>`).join('');
   $('burn-list').innerHTML=state.burns.length?state.burns.map(b=>`<div class="result-row">${card(b.card,'small-card')}<span class="minor">Before ${b.stage} · Board ${b.board?'B':'A'}</span></div>`).join(''):'<p class="minor">No cards burned yet.</p>';
   $('log').innerHTML=state.log.map(e=>`<li><strong>${cardText(e.card)}</strong> → ${safe(destination(e))}</li>`).join('');
-  renderBetting();controls(); renderGuide();
+  renderBetting();controls();renderGuide();syncSimulationEquity();celebrateSimulation();
+  $('remaining').textContent=52-state.cursor;
+  $('sim-history').innerHTML='<h2>Betting history</h2>'+Match.historyRounds(state).map(round=>`<section class="history-round"><h3>${safe(round.label)}</h3>${round.actions.length?'<ol>'+round.actions.map(e=>`<li>${safe(name(e.player))}: ${safe(e.text)}</li>`).join('')+'</ol>':'<p>No betting</p>'}</section>`).join('');
 }
 function controls() {
-  $('next').disabled=busy||playing||guideBusy||waiting()||state.stage==='complete';
-  $('twice').disabled=busy||playing||guideBusy||!Poker.canRunTwice(state);
-  $('play').disabled=guideBusy||waiting()||state.stage==='complete'||(busy&&!playing);
+  const board=state.boards[state.board],street=state.queue[0]?.stage||(board.length===0?'flop':board.length===3?'turn':'river');$('sim-deal').textContent=state.stage==='complete'?'Hand complete':state.stage==='dealing'?'Deal Hole Cards':(state.queue.length?'Finish ':'Deal ')+street[0].toUpperCase()+street.slice(1)+(state.twice?' · Board '+(state.board?'B':'A'):'');
+  $('sim-deal').disabled=simPaused||busy||playing||guideBusy||waiting()||state.stage==='complete';
+  $('next').disabled=simPaused||busy||playing||guideBusy||waiting()||state.stage==='complete';
+  $('twice').disabled=simPaused||busy||playing||guideBusy||!Poker.canRunTwice(state);
+  $('play').disabled=simPaused||guideBusy||waiting()||state.stage==='complete'||(busy&&!playing);
   $('play').textContent=playing?'Pause':busy?'Finishing card…':'Play';
   $('shuffle').disabled=busy||guideBusy; $('replay').disabled=busy||guideBusy;
   $('betting-mode').disabled=busy||playing||guideBusy;
   $('player-count').disabled=busy||playing||guideBusy;
-  document.querySelectorAll('[data-guide]').forEach(b=>b.disabled=busy||playing||guideBusy);
+  document.querySelectorAll('[data-guide]').forEach(b=>b.disabled=simPaused||busy||playing||guideBusy);
 }
 function invalidateGuide(){guideStep=0;}
 async function animateCard(event,nextState) {
@@ -521,14 +611,15 @@ async function animateCard(event,nextState) {
   try{await animation.finished;}catch(e){if(e.name!=='AbortError')throw e;}finally{el.remove();}
 }
 async function oneCard() {
-  if(busy||waiting()||state.stage==='complete') return;
-  busy=true;controls();
+  if(simPaused||busy||waiting()||state.stage==='complete') return;
+  if(!state.log.length||state.log.at(-1).end)$('sim-table-start').scrollIntoView({block:'start',behavior:'instant'});
+  busy=true;stopSimulationEquity('dealing');renderSimulationEquity();controls();
   const next=Poker.next(state),event=next.log.at(-1);
   try {
     await animateCard(event,next);
     state=next;
     notice=`Card ${event.position}: ${cardText(event.card)} → ${destination(event)}.`;
-    if(event.end&&!state.twice&&state.stage!=='complete') {
+    if(event.end&&state.stage!=='complete') {
       playing=false;
       notice+=waiting()?' Betting: '+name(state.betting.actor)+' to act.':' Stage complete. Inspect the hands, continue, or choose Run it twice.';
     }
@@ -538,13 +629,13 @@ async function oneCard() {
 async function play(){
   invalidateGuide();
   if(playing){playing=false;playbackId++;notice='Pausing after the moving card lands.';$('notice').textContent=notice;controls();return;}
-  if(busy)return;
+  if(simPaused||busy)return;
   const id=++playbackId;playing=true;controls();
-  while(playing&&id===playbackId&&!waiting()&&state.stage!=='complete') {await oneCard(); if(playing&&id===playbackId)await new Promise(r=>setTimeout(r,120/speed()));}
+  while(playing&&id===playbackId&&!waiting()&&state.stage!=='complete') {await oneCard(); if(playing&&id===playbackId&&!$('reduce').checked)await new Promise(r=>setTimeout(r,120/speed()));}
   controls();
 }
 function reset(players,deck,message){
-  playing=false;playbackId++;state=Poker.create(players,deck,$('betting-mode').checked);$('player-count').value=String(players);
+  stopSimulationEquity('incomplete');simEquity.key='';simCelebrated=false;$('sim-winner').close();$('sim-celebration').innerHTML='';playing=false;simPaused=false;playbackId++;state=Poker.create(players,deck,$('betting-mode').checked);$('player-count').value=String(players);
   notice=message;render();
 }
 async function shuffleNew(){
@@ -561,38 +652,41 @@ async function shuffleNew(){
   busy=false;reset(Number($('player-count').value),shuffled(),'New shuffled deck. Its displayed order is the order we will deal.');
 }
 function twice(){state=Poker.runTwice(state);notice='Two runs selected. Keep the same hands and shared board cards. Finish A, then B.';render();}
-async function stage(){if(waiting())return;do{await oneCard();}while(!$('simulation').hidden&&!waiting()&&state.stage!=='complete'&&!state.log.at(-1).end);}
-async function finish(){while(!$('simulation').hidden&&!waiting()&&state.stage!=='complete')await oneCard();}
+async function stage(){if(simPaused||busy||waiting())return false;const id=playbackId;do{await oneCard();}while(!simPaused&&id===playbackId&&!$('simulation').hidden&&!waiting()&&state.stage!=='complete'&&!state.log.at(-1).end);}
 const guides={
  normal:{text:'Follow one fixed four-player deal. Watch the two passes, each burn, and Seat 1 making a royal flush at the turn.',steps:[['Load example',()=>load('normal')],['Deal hole cards',stage],['Burn + flop',stage],['Burn + turn',stage],['Burn + river',stage]]},
- twice:{text:'Both players flop three of a kind. Share that flop, finish A, then B. Seat 1 wins A; Seat 2 makes four kings and wins B.',steps:[['Load example',()=>load('twice')],['Deal hole cards',stage],['Burn + flop',stage],['Run it twice',twice],['Finish both boards',finish]]},
+ twice:{text:'Both players flop three of a kind. Share that flop, finish A, then B. Seat 1 wins A; Seat 2 makes four kings and wins B.',steps:[['Load example',()=>load('twice')],['Deal hole cards',stage],['Burn + flop',stage],['Run it twice',twice],['Deal A turn',stage],['Deal A river',stage],['Deal B turn',stage],['Deal B river',stage]]},
  tie:{text:'The board becomes a royal flush. Both players use the board and tie, even though their hole cards differ.',steps:[['Load example',()=>load('tie')],['Deal hole cards',stage],['Burn + flop',stage],['Burn + turn',stage],['Burn + river: tie',stage]]},
- boundary:{text:'A partially dealt flop is not a decision point. Try starting two runs during it, then complete the flop and try again.',steps:[['Load example',()=>load('twice')],['Deal hole cards',stage],['Burn + first flop card',async()=>{await oneCard();await oneCard();}],['Try two runs now',()=>{try{Poker.runTwice(state);}catch(e){notice='Correctly blocked: finish the flop before choosing two runs.';render();}}],['Finish the flop',stage],['Now run it twice',twice],['Finish both boards',finish]]}
+ boundary:{text:'A partially dealt flop is not a decision point. Try starting two runs during it, then complete the flop and try again.',steps:[['Load example',()=>load('twice')],['Deal hole cards',stage],['Burn + first flop card',async()=>{await oneCard();await oneCard();}],['Try two runs now',()=>{try{Poker.runTwice(state);}catch(e){notice='Correctly blocked: finish the flop before choosing two runs.';render();}}],['Finish the flop',stage],['Now run it twice',twice],['Deal A turn',stage],['Deal A river',stage],['Deal B turn',stage],['Deal B river',stage]]}
 };
-function load(key){$('betting-mode').checked=false;const ex=examples[key];reset(ex.players,ex.deck,'Fixed walkthrough deck loaded. This order makes the example repeatable.');}
+function load(key){return replaceSimulation(()=>{$('betting-mode').checked=false;const ex=examples[key];reset(ex.players,ex.deck,'Fixed walkthrough deck loaded. This order makes the example repeatable.');});}
 function renderBetting() {
   const b=state.betting;
-  if(!b){$('betting-panel').innerHTML='<h2>Deal-only mode</h2><p class="minor">Enable Demo betting above for 20-chip stacks, 1/2 blinds, and manual actions at every seat. Switching modes starts a fresh deal.</p>';return;}
-  let body=`<h2>Pot: ${b.pot} chips <span class="tag">1 / 2 BLINDS</span></h2>`;
-  if(b.settled) body+=`<p>${b.awards.flatMap((v,i)=>v?[`${safe(name(i))} receives ${v}`]:[]).join(' · ')}.</p><p class="minor">${b.returned.flatMap((v,i)=>v?[`${safe(name(i))}: ${v} unmatched chips returned. `]:[]).join('')}Pot paid to stacks. New deal resets every stack to 20.</p>`;
-  else if(b.actor===null) body+='<p class="minor">'+(state.stage==='dealing'?'Deal the hole cards to start betting.':Poker.canRunTwice(state)?'All remaining players are all-in. Continue once, or choose Run it twice.':'Betting round complete. Deal the next street.')+'</p>';
-  else {
-    const i=b.actor,{owed,max,min,canRaise}=Poker.legal(state);
-    body+=`<p><strong>${safe(name(i))} · ${Poker.positions(state.players)[i]}</strong> to act. ${b.stacks[i]} chips left; ${owed} to call.</p><div class="bet-actions"><button id="fold">Fold</button><button id="call-check" class="primary">${owed?'Call '+Math.min(owed,b.stacks[i]):'Check'}</button><label for="raise-to">${b.currentBet?'Raise to':'Bet'} <input id="raise-to" type="number" min="${min}" max="${max}" step="1" value="${min}"></label><button id="raise" ${max<=b.currentBet?'disabled':''}>${b.currentBet?'Raise':'Bet'}</button><button id="all-in">All-in ${b.stacks[i]}</button></div><p class="minor">Amount is your total contribution this round, not an extra amount. All cards stay visible; you control every player.</p>`;
-  }
-  body+='<details><summary>Betting history</summary><ol class="log">'+b.history.map(e=>`<li>${safe(name(e.player))}: ${e.text}</li>`).join('')+'</ol></details>';
+  let body='<h2>'+(b?'Demo betting':'Deal-only mode')+'</h2>';
+  if(b?.settled)body+=`<p>${b.awards.flatMap((v,i)=>v?[`${safe(name(i))} receives ${v} chips`]:[]).join(' · ')}.</p><p class="minor">New Deal resets every stack to 20.</p>`;
+  else if(b?.actor!==null&&b?.actor!==undefined){
+    const i=b.actor,l=Poker.legal(state);
+    body+=`<h3>${safe(name(i))} · ${Poker.positions(state.players)[i]}</h3><p>${b.stacks[i]} chips left · ${l.owed?l.call+' to call':'Nothing to call'}</p><div class="action-row betting-actions"><button id="fold">Fold</button><button id="call-check" class="primary">${l.owed?'Call '+l.call:'Check'}</button></div><div class="raise-slider"><label for="raise-to">Bet size</label><input id="raise-to" type="range" min="${l.min}" max="${l.max}" step="1" value="${l.min}" aria-describedby="sim-raise-selection" ${l.canRaise&&l.min<l.max?'':'disabled'}><div class="range-labels"><span>Min · ${l.min}</span><span>Max · ${l.max}</span></div><button id="raise" ${l.canRaise?'':'disabled'}>Raise</button></div><p id="sim-raise-selection" class="minor"></p><p class="minor">Raise-to includes chips already paid this round. Max uses the full stack.</p>`;
+  }else body+='<p>Inspect the visible cards, then deal the next street when ready.</p>';
+  body+='<div class="action-row"><button id="sim-pause">'+(simPaused?'Resume Simulation':'Pause Simulation')+'</button></div>';
   $('betting-panel').innerHTML=body;
-  if(b.actor!==null) {
-    const owed=b.currentBet-b.paid[b.actor];
-    $('fold').onclick=()=>wager('fold');
-    $('call-check').onclick=()=>wager(owed?'call':'check');
-    $('raise').disabled=!Poker.legal(state).canRaise;
-    $('all-in').disabled=b.paid[b.actor]+b.stacks[b.actor]>b.currentBet&&!Poker.legal(state).canRaise;
-    $('raise').onclick=()=>wager('raise',Number($('raise-to').value));
-    $('all-in').onclick=()=>{const max=b.paid[b.actor]+b.stacks[b.actor];wager(max>b.currentBet?'raise':'call',max);};
-    $('betting-panel').querySelectorAll('button,input').forEach(el=>{if(busy||playing||guideBusy)el.disabled=true;});
+  $('sim-pause').onclick=()=>{simPaused=!simPaused;playing=false;playbackId++;render();};
+  if(b?.actor!==null&&b?.actor!==undefined){
+    const l=Poker.legal(state),i=b.actor;
+    const update=()=>{const value=Number($('raise-to').value),all=value===l.max;$('raise').textContent=all?'All-in '+b.stacks[i]:(b.currentBet?'Raise to ':'Bet ')+value;$('raise').style.background=all?'#e2b43c':'#4169e1';$('raise').style.color=all?'#302509':'#fff';$('sim-raise-selection').textContent=value+' total this round · '+(value-b.paid[i])+' chips now.';};
+    $('raise-to').oninput=update;update();
+    const ask=(action,amount)=>simConfirm(()=>wager(action,amount),name(i)+': '+(action==='raise'?($('raise').textContent+'?'):action==='call'?'Call '+l.call+' chips?':action==='fold'?'Fold this hand?':'Check without adding chips?'));
+    $('fold').onclick=()=>ask('fold');$('call-check').onclick=()=>ask(l.owed?'call':'check');$('raise').onclick=()=>ask('raise',Number($('raise-to').value));
+    for(const id of ['fold','call-check','raise','raise-to'])if(simPaused||busy||playing||guideBusy)$(id).disabled=true;
+    $('raise').disabled=simPaused||busy||playing||guideBusy||!l.canRaise;
   }
 }
+function simConfirm(action,text,onCancel){simPending=action;simPendingCancel=onCancel;$('sim-confirm-text').textContent=text;$('sim-confirm').showModal();}
+function cancelSimConfirm(){const cancel=simPendingCancel;simPending=null;simPendingCancel=null;$('sim-confirm').close();cancel?.();}
+$('sim-confirm-no').onclick=cancelSimConfirm;
+$('sim-confirm').oncancel=cancelSimConfirm;
+$('sim-confirm-yes').onclick=()=>{const action=simPending;simPendingCancel=null;cancelSimConfirm();return action?.();};
+
 function wager(action,amount) {
   try {
     state=Poker.act(state,action,amount);
@@ -604,25 +698,26 @@ function wager(action,amount) {
 
 function renderGuide(){
   const g=guides[guideKey];
-  $('guide').innerHTML=`<p class="guide-desc">${g.text}</p><div class="guide-step"><span class="guide-progress">${guideStep<g.steps.length?'Step '+(guideStep+1)+' of '+g.steps.length:'Walkthrough complete'}</span><button id="guide-next" ${busy||playing||guideBusy?'disabled':''}>${guideStep<g.steps.length?g.steps[guideStep][0]:'Restart walkthrough'}</button></div>`;
+  $('guide').innerHTML=`<p class="guide-desc">${g.text}</p><div class="guide-step"><span class="guide-progress">${guideStep<g.steps.length?'Step '+(guideStep+1)+' of '+g.steps.length:'Walkthrough complete'}</span><button id="guide-next" ${simPaused||busy||playing||guideBusy?'disabled':''}>${guideStep<g.steps.length?g.steps[guideStep][0]:'Restart walkthrough'}</button></div>`;
   $('guide-next').onclick=async()=>{
-    if(busy||playing||guideBusy)return;
+    if(simPaused||busy||playing||guideBusy)return;
     if(guideStep>=g.steps.length)guideStep=0;
     guideBusy=true;controls();renderGuide();
-    try{await g.steps[guideStep][1]();guideStep++;}finally{guideBusy=false;render();}
+    try{if(await g.steps[guideStep][1]()!==false)guideStep++;}finally{guideBusy=false;render();}
   };
 }
 $('name-editor').innerHTML=names.map((n,i)=>`<label>Seat ${i+1}<input data-name="${i}" value="${safe(n)}" maxlength="20" aria-label="Seat ${i+1} name"></label>`).join('');
 document.querySelectorAll('[data-name]').forEach(el=>el.onchange=()=>{names[Number(el.dataset.name)]=el.value.trim().slice(0,20)||('Player '+(Number(el.dataset.name)+1));el.value=names[Number(el.dataset.name)];render();});
-$('betting-mode').onchange=()=>{invalidateGuide();reset(state.players,state.deck,'Mode changed. Same deck, fresh deal; demo betting starts everyone with 20 chips.');};
-$('next').onclick=()=>{invalidateGuide();oneCard();};
+$('betting-mode').onchange=()=>{const enabled=$('betting-mode').checked;$('betting-mode').checked=!!state.betting;return replaceSimulation(()=>{$('betting-mode').checked=enabled;invalidateGuide();reset(state.players,state.deck,'Mode changed. Same deck, fresh 20-chip deal.');});};
+$('next').onclick=()=>{invalidateGuide();return oneCard();};
 $('play').onclick=play;
+$('sim-deal').onclick=play;
 $('twice').onclick=()=>{invalidateGuide();twice();};
-$('shuffle').onclick=shuffleNew;
-$('replay').onclick=()=>{invalidateGuide();reset(state.players,state.deck,'Same deck, back to the beginning. Compare the exact same card sequence.');};
-$('player-count').onchange=shuffleNew;
+$('shuffle').onclick=()=>replaceSimulation(shuffleNew);
+$('replay').onclick=()=>replaceSimulation(()=>{invalidateGuide();reset(state.players,state.deck,'Same deck prepared. Choose Deal Hole Cards to replay.');});
+$('player-count').onchange=()=>{const count=Number($('player-count').value);$('player-count').value=String(state.players);return replaceSimulation(()=>{$('player-count').value=String(count);return shuffleNew();});};
 document.querySelectorAll('[data-guide]').forEach(b=>b.onclick=()=>{guideKey=b.dataset.guide;guideStep=0;document.querySelectorAll('[data-guide]').forEach(t=>t.setAttribute('aria-selected',String(t===b)));renderGuide();});
-document.addEventListener('visibilitychange',()=>{if(document.hidden&&playing){playing=false;playbackId++;notice='Playback paused while the page was hidden.';controls();}});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)cancelSimConfirm();if(document.hidden&&playing){playing=false;playbackId++;notice='Playback paused while the page was hidden.';controls();}});
 function seatStyle(i,n){if(n>6){const points=n===8?[[50,90],[15,75],[15,50],[15,25],[50,10],[85,25],[85,50],[85,75]]:[[50,90],[15,75],[15,50],[15,25],[50,10],[85,30],[85,65]];return `left:${points[i][0]}%;top:${points[i][1]}%;grid-column:${points[i][0]<30?1:points[i][0]>70?3:2};grid-row:${points[i][1]<40?1:points[i][1]>60?3:2};--seat-lift:0px;--rank-lift:0%`;}const angle=(90+i*360/n)*Math.PI/180;return `left:${50+35*Math.cos(angle)}%;top:${50+34*Math.sin(angle)}%;--seat-lift:${Math.max(0,Math.sin(angle))*48}px;--rank-lift:${Math.abs(Math.cos(angle))<0.1?0:Math.sin(angle)<-0.1?30:5}%`;}
 render();
 </script>
@@ -668,9 +763,10 @@ render();
   function navigate(next){
     if(screen==='equity'){stopEquity();$('equity-picker').close();$('equity-confirm').close();eqSlot=null;eqPending=null;}
     if(screen==='game')conceal();
+    if(screen==='simulation'){stopSimulationEquity();cancelSimConfirm();$('sim-winner').close();$('sim-celebration').innerHTML='';}
     playing=false;playbackId++;document.querySelectorAll('.ghost,.shuffle-ghost').forEach(el=>{el.getAnimations().forEach(a=>a.cancel());el.remove();});
     screen=next;message='';$('simulation').hidden=next!=='simulation';$('simulation-dock').hidden=next!=='simulation';app.hidden=next==='simulation';
-    if(next!=='simulation')renderApp();window.scrollTo(0,0);
+    if(next!=='simulation')renderApp();else render();window.scrollTo(0,0);
   }
   function setupHTML(){
     return `${header()}<h2>Your table</h2><p class="subtle">20 chips each. Blinds stay at 1 / 2.</p><form id="match-setup" class="setup-form"><label for="mp-count">Players</label><select id="mp-count">${[2,3,4,5,6,7,8].map(n=>`<option ${n===setupCount?'selected':''}>${n}</option>`).join('')}</select><p class="subtle">Seat 1 is at the bottom. Enter names clockwise around the table.</p><div class="setup-names">${setupNames.slice(0,setupCount).map((n,i)=>`<label for="mp-name-${i}">Seat ${i+1}<input id="mp-name-${i}" name="player${i}" maxlength="20" required value="${safe(n)}" autocomplete="off"></label>`).join('')}</div><label for="mp-reveal">View your cards</label><select id="mp-reveal"><option value="hold" ${setupReveal==='hold'?'selected':''}>Hold to peek</option><option value="tap" ${setupReveal==='tap'?'selected':''}>Tap to reveal, then hide</option></select><label for="mp-guidance">Hand guidance · everyone</label><select id="mp-guidance"><option value="on" ${setupGuidance?'selected':''}>On — explain hands and draws</option><option value="off" ${setupGuidance?'':'selected'}>Off — cards only during Peek</option></select><p class="privacy-note">Pass the phone only when cards are hidden. The first dealer is chosen randomly. Seats stay fixed throughout the game.</p><button class="primary" type="submit">Start game</button></form>`;
@@ -914,4 +1010,8 @@ render();
   renderApp();
 })();
 </script>
+
+<style>
+#simulation{max-width:560px;padding-bottom:32px;overflow-anchor:none}#simulation .intro{font-size:13px}#simulation .mp-board{margin-top:16px}#simulation .board-line{flex-wrap:nowrap}#simulation .board-name{width:24px}#simulation .players{height:auto;min-height:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 7px;padding:8px 0;margin:12px 0;border-radius:45%;background:radial-gradient(ellipse at center,#2b5e49 0,#2b5e49 57%,#e7ecdf 59%,transparent 64%)}#simulation .players .seat{position:relative;left:auto!important;top:auto!important;transform:none;width:100%;max-width:none;min-height:0;align-self:center;padding:7px 3px;color:var(--ink)}#simulation .players .seat-name{font-size:13px;font-weight:700;line-height:1.2;flex-wrap:wrap;margin-bottom:2px}#simulation .seat-position{color:#526a59;font-size:11px}#simulation .seat-cat{color:inherit;font-size:11px;margin-top:4px;min-height:0}#simulation .seat-stack{font-size:11px;line-height:1.25}#simulation .players .card{width:32px;height:44px;font-size:23px;line-height:1}#simulation .players .card .suit{font-size:23px}#simulation .mp-center{position:static;grid-area:2 / 2;align-self:center;display:flex;flex-wrap:wrap;justify-content:center;gap:5px}#simulation .mp-center p{width:100%;margin:3px 0}#simulation .deck-stack{width:27px;height:37px}#simulation .deck-stack:after{inset:5px;font-size:17px}#simulation .burn-slot{height:37px}#simulation .sim-equity-seat strong{display:inline;font-size:inherit;white-space:nowrap}#simulation .sim-equity-seat{font-size:11px;line-height:1.3;margin-top:5px}#simulation[data-reduced="true"] .seat-winner{animation:none}#simulation .folded{opacity:.65}#simulation .seat.action-red{background:#f4dedc}#simulation .betting-actions button,#simulation #raise{height:54px;font-size:16px;min-width:0}#simulation #raise{width:100%}#simulation #sim-pause{background:#64707c;color:#fff}#simulation #sim-deal{flex:2}#simulation #twice{flex:1}#simulation #sim-equity-status{padding:0 4px}#simulation .hand-summary h3{font-size:15px;margin-top:12px}#simulation .best-cards{flex-wrap:wrap}#simulation .deck-grid{grid-template-columns:repeat(8,minmax(0,1fr))}#simulation .deck-item .card{width:100%;max-width:34px}#simulation .panel.guides{border:0;padding:12px 0}#simulation #simulation-dock{position:static}#simulation .speed{justify-content:flex-start;margin:12px 0}#sim-confirm,#sim-winner{width:min(360px,90vw);border:1px solid #9bb090;border-radius:14px;padding:22px;background:#fffef9;color:#173c32}#sim-confirm::backdrop,#sim-winner::backdrop{background:#173c3270}#sim-winner{animation:winner-arrival .45s ease-out}#simulation #sim-history .log{max-height:none}#simulation .table-foot{color:var(--muted)}
+</style>
 </body></html>

@@ -9,12 +9,12 @@ function page(saved=null,workerAvailable=true){
   const html=fs.readFileSync(__dirname+'/dealing-prototype.html','utf8');
   const ids=new Map(),workers=[],flights=[],scrolls=[],windowEvents={},documentEvents={};
   class Element {
-    constructor(){this.style={};this.dataset={};this.value='';this.checked=false;this.hidden=false;this.classList={add(){}};this.textContent='';}
+    constructor(){this.style={};this.dataset={};this.value='';this.checked=false;this.disabled=false;this.hidden=false;this.classList={add(){}};this.textContent='';}
     set innerHTML(value){
       this.markup=value;
       this.children=[];
       for(const tag of value.matchAll(/<[^>]+(?:\bid="[^"]+"|\bdata-[\w-]+="[^"]*")[^>]*>/g)){
-        const el=new Element();el.value=tag[0].match(/\bvalue="([^"]*)"/)?.[1]||'';
+        const el=new Element();el.disabled=/\sdisabled(?:\s|>)/.test(tag[0]);el.value=tag[0].match(/\bvalue="([^"]*)"/)?.[1]||'';
         for(const [,key,val] of tag[0].matchAll(/\bdata-([\w-]+)="([^"]*)"/g)){el.dataset[key]=val;el.dataset[key.replace(/-([a-z])/g,(_,c)=>c.toUpperCase())]=val;}
         const id=tag[0].match(/\bid="([^"]+)"/)?.[1];if(id)ids.set(id,el);
         this.children.push(el);
@@ -175,7 +175,9 @@ test('Peek events show and remove all private guidance without replacing the hel
 
 test('Simulation walkthroughs remain wired and leaving during card flight completes without a stuck control',async()=>{
   const {ids,flights}=page();
-  ids.get('simulation').hidden=false;
+  const app=ids.get('pocket-app');
+  app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();
+  app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='simulation').onclick();
   await ids.get('guide-next').onclick();
   await ids.get('guide-next').onclick();
   assert.equal(ids.get('remaining').textContent,44);
@@ -189,10 +191,11 @@ test('Simulation walkthroughs remain wired and leaving during card flight comple
   assert.equal(ids.get('remaining').textContent,43);
   assert.equal(ids.get('shuffle').disabled,false);
   assert.ok(flights.every(el=>el.removed));
-  ids.get('simulation').hidden=false;
+  app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='simulation').onclick();
   const shuffle=ids.get('shuffle').onclick();
+  const confirmed=ids.get('sim-confirm-yes').onclick();
   ids.get('simulation-menu').onclick();
-  await shuffle;
+  await confirmed;await shuffle;
   assert.equal(ids.get('remaining').textContent,52);
   assert.equal(ids.get('shuffle').disabled,false);
 });
@@ -392,4 +395,93 @@ test('Equity confirms player removal and clearing a card invalidates completed p
  assert.match(ids.get('eq-result-0').innerHTML,/80.0%/);
  app.querySelectorAll('[data-eq-slot]').find(e=>e.dataset.eqSlot==='p:0:0').onclick();ids.get('eq-picker-clear').onclick();
  assert.doesNotMatch(ids.get('eq-result-0').innerHTML,/80.0%/);assert.match(ids.get('eq-status').innerHTML,/Choose two cards/);
+});
+
+test('Simulation deals one street, confirms bets, and pauses before the next street',async()=>{
+ const p=page(savedFlop()),{ids}=p,app=ids.get('pocket-app'),saved=p.saved;
+ app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();
+ app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='simulation').onclick();
+ assert.match(ids.get('sim-deal').textContent,/Hole Cards/);
+ await ids.get('sim-deal').onclick();
+ assert.equal(ids.get('remaining').textContent,44);
+ assert.equal(ids.get('sim-deal').disabled,true);
+ assert.match(ids.get('betting-panel').innerHTML,/type="range"/);
+ for(let i=0;i<4;i++){
+  ids.get('call-check').onclick();assert.equal(ids.get('sim-confirm').open,true);
+  assert.equal(ids.get('remaining').textContent,44);
+  ids.get('sim-confirm-yes').onclick();
+ }
+ assert.equal(ids.get('sim-deal').disabled,false);assert.match(ids.get('sim-deal').textContent,/Flop/);
+ assert.equal(ids.get('remaining').textContent,44);
+ await ids.get('sim-deal').onclick();assert.equal(ids.get('remaining').textContent,40);
+ assert.equal(p.saved,saved);assert.ok(ids.get('sim-table-start'));assert.ok(p.scrolls.some(s=>s.element===ids.get('sim-table-start')));
+});
+
+test('Simulation equity follows visible cards and ignores cancelled or obsolete worker results',async()=>{
+ const p=page(savedFlop()),{ids}=p,app=ids.get('pocket-app'),saved=p.saved;
+ app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='simulation').onclick();
+ await ids.get('sim-deal').onclick();
+ const w=p.workers.at(-1);assert.ok(w);assert.equal(w.request.visible.hands.length,4);assert.equal('deck' in w.request.visible,false);
+ const result={board:0,seats:[0,1,2,3],exact:false,done:false,completed:250,total:20000,players:Array.from({length:4},()=>({equity:.25,win:.25,tie:0}))};
+ w.onmessage({data:{id:w.request.id,result}});assert.match(ids.get('sim-equity-seat-0').innerHTML,/25.0%/);
+ ids.get('sim-equity-cancel').onclick();assert.equal(w.terminated,true);
+ w.onmessage({data:{id:w.request.id,result:{...result,done:true,completed:20000}}});
+ assert.doesNotMatch(ids.get('sim-equity-seat-0').innerHTML,/25.0%/);
+ ids.get('sim-equity-retry').onclick();const newer=p.workers.at(-1);assert.notEqual(w,newer);
+ ids.get('fold').onclick();ids.get('sim-confirm-yes').onclick();assert.equal(newer.terminated,true);
+ assert.equal(p.workers.at(-1).request.visible.folded.filter(Boolean).length,1);
+ assert.equal(ids.get('sim-equity-seat-3').innerHTML,'Folded');assert.equal(p.saved,saved);
+ ids.get('simulation-menu').onclick();assert.equal(p.workers.at(-1).terminated,true);
+});
+
+test('Simulation fold wins celebrate once and replay asks before discarding an unfinished deal',async()=>{
+ const p=page(),{ids}=p,app=ids.get('pocket-app');
+ app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='simulation').onclick();
+ await ids.get('sim-deal').onclick();const first=ids.get('players').innerHTML;
+ ids.get('replay').onclick();assert.equal(ids.get('sim-confirm').open,true);
+ ids.get('sim-confirm-no').onclick();assert.equal(ids.get('remaining').textContent,44);
+ for(let i=0;i<3;i++){ids.get('fold').onclick();ids.get('sim-confirm-yes').onclick();}
+ assert.equal(ids.get('sim-winner').open,true);assert.match(ids.get('sim-winner-summary').innerHTML,/wins/);
+ ids.get('sim-winner-close').onclick();ids.get('simulation-menu').onclick();
+ app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='simulation').onclick();assert.equal(ids.get('sim-winner').open,false);
+ await ids.get('replay').onclick();assert.equal(ids.get('remaining').textContent,52);
+ await ids.get('sim-deal').onclick();assert.equal(ids.get('players').innerHTML,first);
+});
+
+test('Simulation all-in runouts pause at every street and finish only after board B',async()=>{
+ const p=page(),{ids}=p,app=ids.get('pocket-app');
+ app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='simulation').onclick();
+ await ids.get('sim-deal').onclick();
+ ids.get('raise-to').value='20';ids.get('raise-to').oninput();assert.match(ids.get('raise').textContent,/All-in/);
+ ids.get('raise').onclick();ids.get('sim-confirm-yes').onclick();
+ for(let i=0;i<3;i++){ids.get('call-check').onclick();ids.get('sim-confirm-yes').onclick();}
+ assert.equal(ids.get('twice').disabled,false);ids.get('twice').onclick();
+ for(const remaining of [40,38,36,32,30,28]){
+  await ids.get('sim-deal').onclick();assert.equal(ids.get('remaining').textContent,remaining);
+  if(remaining!==28)assert.notEqual(ids.get('sim-winner').open,true);
+  if(remaining<=36)assert.match(ids.get('boards').innerHTML,/wins|tie/);
+ }
+ assert.equal(ids.get('sim-winner').open,true);assert.equal(ids.get('sim-deal').disabled,true);
+ assert.match(ids.get('sim-history').innerHTML,/Preflop/);assert.match(ids.get('sim-history').innerHTML,/River · B/);assert.match(ids.get('sim-history').innerHTML,/No betting/);
+ assert.equal(p.workers.at(-1).request.visible.boards.length,2);
+});
+
+test('pausing Simulation disables study playback and cancellation leaves a deal usable',async()=>{
+ const p=page(),{ids}=p,app=ids.get('pocket-app');
+ app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='simulation').onclick();
+ ids.get('sim-pause').onclick();assert.equal(ids.get('guide-next').disabled,true);assert.equal(ids.get('next').disabled,true);
+ ids.get('sim-pause').onclick();await ids.get('sim-deal').onclick();
+ const w=p.workers.at(-1);w.onerror();assert.match(ids.get('sim-equity-status').innerHTML,/could not finish/);
+ assert.equal(ids.get('call-check').disabled,false);
+ ids.get('replay').onclick();ids.get('sim-confirm-no').onclick();assert.equal(ids.get('remaining').textContent,44);
+});
+
+test('per-card study controls finish the current partial flop before offering the turn',async()=>{
+ const p=page(),{ids}=p,app=ids.get('pocket-app');
+ app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='simulation').onclick();
+ ids.get('betting-mode').checked=false;await ids.get('betting-mode').onchange();await ids.get('sim-deal').onclick();
+ await ids.get('next').onclick();await ids.get('next').onclick();
+ assert.match(ids.get('sim-deal').textContent,/Finish Flop/);assert.equal(ids.get('twice').disabled,true);
+ assert.match(ids.get('sim-equity-status').innerHTML,/completed street/);
+ await ids.get('sim-deal').onclick();assert.equal(ids.get('remaining').textContent,40);assert.match(ids.get('sim-deal').textContent,/Deal Turn/);
 });

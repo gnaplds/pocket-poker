@@ -40,3 +40,20 @@ test('exact results are invariant under reordered players and consistent suit ch
  const renamed=finish({hands:hands.map(h=>h.map(swap)),board:board.map(swap)});
  for(let i=0;i<3;i++)for(const key of ['equity','win','tie'])assert.ok(Math.abs(original.players[i][key]-renamed.players[i][key])<1e-10);
 });
+
+test('Simulation equity excludes folded hands and dealt burns without letting them compete',()=>{
+ const visible={hands:[['As','Ad'],['Ks','Kd'],['Kc','Qc']],boards:[['2c','3h','7d','9s']],folded:[false,false,true],burns:['Kh']};
+ const r=[...E.simulation(visible)].at(-1);
+ assert.equal(r.completed,41);assert.deepEqual(plain(r.seats),[0,1]);
+ assert.deepEqual(plain(r.players),[{equity:1,win:1,tie:0},{equity:0,win:0,tie:0}]);
+ assert.throws(()=>finish({hands:visible.hands.slice(0,2),board:visible.boards[0],dead:['As']}));
+});
+
+test('Simulation evaluates two shared-prefix boards separately and resolves a fold winner directly',()=>{
+ const input={hands:[['As','Ad'],['Ks','Kd']],boards:[['2c','3h','7d','Kc','Kh'],['2c','3h','7d','9s']],folded:[false,false],burns:['Qs','Jc']};
+ const results=[...E.simulation(input)].filter(r=>r.done);
+ assert.equal(results[0].board,0);assert.equal(results[0].players[1].equity,1);
+ assert.equal(results[1].board,1);assert.equal(results[1].completed,40);assert.equal(results[1].players[0].equity,1);
+ const survivor=[...E.simulation({...input,folded:[true,false],boards:[[]]})].at(-1);
+ assert.deepEqual(plain(survivor.seats),[1]);assert.equal(survivor.players[0].equity,1);assert.equal(survivor.completed,1);
+});
