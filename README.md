@@ -2,7 +2,7 @@
 
 A phone-focused Texas Hold’em prototype for **2–8 players on one shared device**, plus an open-card simulator for studying how hands are dealt. It uses play chips and runs entirely in the browser, with no account, backend, or runtime dependencies.
 
-**Status:** working browser prototype. Android packaging, online multiplayer, and the equity calculator are not implemented.
+**Status:** working browser prototype. Android packaging and online multiplayer are not implemented. Equity mode is available in this local prototype branch and has not yet been deployed.
 
 ![Community board and winning seat](.scratch/pass-and-play/board-winner-glow.png)
 
@@ -27,6 +27,14 @@ Optional hand guidance explains the current best five cards, kickers, and one-ca
 Inspect all hole cards, the shuffled deck order, burns, and community cards. Step through cards individually or use Play/Pause and adjustable speed. Try demo betting, run two boards, replay the same deck, or use the built-in example hands.
 
 See the [play guide](prototypes/README.md) for detailed behavior.
+
+### Equity calculator
+
+Choose **Play → Equity**. Enter two known cards for each of 2–8 players, then select Preflop, Flop, Turn, or River and fill that board stage. Each player row shows Equity, Win, and Tie, with the current hand category from the flop onward.
+
+Preflop samples 20,000 boards and labels the results **Estimated**. Flop, turn, and river enumerate all remaining boards and display **Exact** results. Calculations run in a Web Worker, with progress and cancellation. Edits discard old percentages, and Calculate again restarts cancelled or failed work.
+
+Card selection prevents duplicates. Removing entered cards through a stage/count change or Reset requires confirmation. Inputs survive mode changes during the visit but reset on page reload. Multiplayer saves are separate. This calculator assumes one equal pot and known hole cards; it does not support ranges, unknown hands, side pots, or two-board equity.
 
 ## Run locally
 
@@ -75,10 +83,10 @@ The app makes no outgoing network requests during play. A hosted page needs a co
 Use Node.js 26 or later. No npm dependencies are required.
 
 ```sh
-node --test --test-isolation=none prototypes/dealing-prototype.test.cjs prototypes/dealing-prototype.ui.test.cjs
+node --test --test-isolation=none prototypes/dealing-prototype.test.cjs prototypes/dealing-prototype.ui.test.cjs prototypes/equity-prototype.test.cjs
 ```
 
-The current suite has **59 tests** covering card order, hand rankings, betting rules, side pots, tied payouts, 2–8 players, two-board runouts, saved-game recovery, private views, and UI event handling. UI tests use a DOM boundary double; they do not replace browser or physical-device checks.
+The current suite has **70 tests** covering card order, hand rankings, betting rules, side pots, tied payouts, 2–8 players, two-board runouts, saved-game recovery, private views, and UI event handling. UI tests use a DOM boundary double; they do not replace browser or physical-device checks.
 
 Desktop browser checks include phone-width layouts, concealed cards, runouts, result displays, and winner styling. Physical Android touch behavior and screen-reader testing remain pending. The evaluator is a JavaScript reference implementation and has not been exhaustively checked against every possible hand or betting sequence.
 
@@ -99,7 +107,7 @@ Earlier planning documents describe earlier versions. This README and the curren
 
 - Physical Android testing and Android packaging.
 - Further accessibility and small-screen checks.
-- A future card-selection and equity mode, currently shown as unavailable.
+- Hands-on validation of the new Equity prototype before publishing it.
 
 ## References
 

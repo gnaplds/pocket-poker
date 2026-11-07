@@ -5,9 +5,9 @@ const vm=require('node:vm');
 const {webcrypto}=require('node:crypto');
 
 // A DOM/animation boundary double: checks event wiring, not browser layout or touch input.
-function page(saved=null){
+function page(saved=null,workerAvailable=true){
   const html=fs.readFileSync(__dirname+'/dealing-prototype.html','utf8');
-  const ids=new Map(),flights=[],scrolls=[],windowEvents={},documentEvents={};
+  const ids=new Map(),workers=[],flights=[],scrolls=[],windowEvents={},documentEvents={};
   class Element {
     constructor(){this.style={};this.dataset={};this.value='';this.checked=false;this.hidden=false;this.classList={add(){}};this.textContent='';}
     set innerHTML(value){
@@ -15,7 +15,7 @@ function page(saved=null){
       this.children=[];
       for(const tag of value.matchAll(/<[^>]+(?:\bid="[^"]+"|\bdata-[\w-]+="[^"]*")[^>]*>/g)){
         const el=new Element();el.value=tag[0].match(/\bvalue="([^"]*)"/)?.[1]||'';
-        for(const [,key,val] of tag[0].matchAll(/\bdata-([\w-]+)="([^"]*)"/g))el.dataset[key]=val;
+        for(const [,key,val] of tag[0].matchAll(/\bdata-([\w-]+)="([^"]*)"/g)){el.dataset[key]=val;el.dataset[key.replace(/-([a-z])/g,(_,c)=>c.toUpperCase())]=val;}
         const id=tag[0].match(/\bid="([^"]+)"/)?.[1];if(id)ids.set(id,el);
         this.children.push(el);
       }
@@ -45,10 +45,14 @@ function page(saved=null){
   const document={body:new Element(),hidden:false,createElement:()=>new Element(),getElementById:id=>ids.get(id),
     querySelectorAll:selector=>selector.includes('.ghost')?flights.filter(el=>!el.removed):[],addEventListener:(type,fn)=>{(documentEvents[type]??=[]).push(fn);}};
   document.body.innerHTML=html;
+  for(const [,id,body] of html.matchAll(/<script id="([^"]+)">([\s\S]*?)<\/script>/g))ids.get(id).textContent=body;
   ids.get('speed').value='1';ids.get('player-count').value='4';ids.get('betting-mode').checked=true;
-  const ctx=vm.createContext({document,crypto:webcrypto,matchMedia:()=>({matches:true}),localStorage:{getItem:()=>saved,setItem:(key,value)=>{saved=value;}},window:{addEventListener:(type,fn)=>{(windowEvents[type]??=[]).push(fn);},scrollTo(options){scrolls.push({options,saved});}},setTimeout});
+  const blobs=new Map();
+  const workerURL={createObjectURL(blob){const key='blob:'+blobs.size;blobs.set(key,blob);return key;},revokeObjectURL(key){blobs.delete(key);}};
+  class TestWorker{constructor(url){this.source=blobs.get(url);if(!workerAvailable)throw Error('Worker unavailable');workers.push(this);}postMessage(data){this.request=data;}terminate(){this.terminated=true;}}
+  const ctx=vm.createContext({Worker:TestWorker,Blob,URL:workerURL,document,crypto:webcrypto,matchMedia:()=>({matches:true}),localStorage:{getItem:()=>saved,setItem:(key,value)=>{saved=value;}},window:{addEventListener:(type,fn)=>{(windowEvents[type]??=[]).push(fn);},scrollTo(options){scrolls.push({options,saved});}},setTimeout});
   for(const [,script] of html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g))vm.runInContext(script,ctx);
-  return {ids,flights,scrolls,windowEvents,documentEvents,document,get saved(){return saved;}};
+  return {ids,workers,flights,scrolls,windowEvents,documentEvents,document,get saved(){return saved;}};
 }
 
 function savedFlop(reveal='hold',guidance=true,situation='flop',cards='6h 2c 7h 3d 4s 8h 9c Kh'){
@@ -319,4 +323,73 @@ test('setup offers eight named seats and preserves names when changing table siz
  assert.equal(p.ids.get('mp-name-0').value,'Robin');
  for(let i=1;i<8;i++)assert.equal(p.ids.get('mp-name-'+i).value,'Player '+(i+1));
  assert.match(app.innerHTML,/Seat 8/);
+});
+test('Equity card entry disables duplicates, preserves inputs across modes, and leaves saved games untouched',()=>{
+ const p=page(savedFlop()),app=p.ids.get('pocket-app'),before=p.saved;
+ const nav=mode=>app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav===mode).onclick();
+ nav('modes');nav('equity');
+ assert.match(app.innerHTML,/Equity calculator/);
+ app.querySelectorAll('[data-eq-slot]').find(e=>e.dataset['eq-slot']==='p:0:0').onclick();
+ p.ids.get('equity-picker').querySelectorAll('[data-eq-card]').find(e=>e.dataset['eq-card']==='As').onclick();
+ p.ids.get('equity-picker').querySelectorAll('[data-eq-card]').find(e=>e.dataset['eq-card']==='Kh').onclick();
+ app.querySelectorAll('[data-eq-slot]').find(e=>e.dataset['eq-slot']==='p:1:0').onclick();
+ assert.match(p.ids.get('equity-picker').innerHTML,/data-eq-card="As" disabled/);
+ p.ids.get('eq-picker-close').onclick();nav('modes');nav('equity');
+ assert.match(app.innerHTML,/A of spades/);assert.match(app.innerHTML,/K of hearts/);assert.equal(p.saved,before);
+});
+
+function equityPage(workerAvailable=true){
+ const p=page(savedFlop(),workerAvailable),app=p.ids.get('pocket-app');
+ p.nav=mode=>app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav===mode).onclick();p.nav('modes');p.nav('equity');
+ p.pick=(slot,cards)=>{app.querySelectorAll('[data-eq-slot]').find(e=>e.dataset.eqSlot===slot).onclick();for(const c of cards)p.ids.get('equity-picker').querySelectorAll('[data-eq-card]').find(e=>e.dataset.eqCard===c).onclick();};
+ p.stage=n=>app.querySelectorAll('[data-eq-stage]').find(e=>e.dataset.eqStage===String(n)).onclick();return p;
+}
+test('Equity cancels obsolete jobs, ignores late results, retries, and retains completed results',()=>{
+ const p=equityPage(),{ids,workers}=p,before=p.saved;
+ p.pick('p:0:0',['As','Ad']);p.pick('p:1:0',['Ks','Kd']);assert.equal(workers.length,1);
+ const first=workers[0],partial={exact:false,done:false,total:20000,completed:250,players:[{equity:.8,win:.8,tie:0},{equity:.2,win:.2,tie:0}]};
+ first.onmessage({data:{id:first.request.id,result:partial}});assert.match(ids.get('eq-result-0').innerHTML,/80.0%/);
+ ids.get('eq-cancel').onclick();assert.equal(first.terminated,true);assert.doesNotMatch(ids.get('eq-result-0').innerHTML,/80.0%/);
+ first.onmessage({data:{id:first.request.id,result:partial}});assert.doesNotMatch(ids.get('eq-result-0').innerHTML,/80.0%/);
+ ids.get('eq-retry').onclick();assert.equal(workers.length,2);
+ p.stage(5);assert.equal(workers[1].terminated,true);p.pick('b:0',['2c','3h','7d','9s','Jc']);
+ const last=workers.at(-1);assert.equal(last.request.input.board.length,5);
+ last.onmessage({data:{id:last.request.id,result:{exact:true,done:true,total:1,completed:1,players:[{equity:1,win:1,tie:0},{equity:0,win:0,tie:0}]}}});
+ assert.match(ids.get('eq-result-0').innerHTML,/100.0%/);assert.match(ids.get('eq-result-0').innerHTML,/Winner/);assert.equal(last.terminated,true);
+ p.nav('modes');p.nav('equity');assert.match(ids.get('eq-result-0').innerHTML,/100.0%/);assert.equal(p.saved,before);
+});
+test('Equity removal confirmation and worker failures keep the scenario editable',()=>{
+ const p=equityPage(false),{ids}=p,app=ids.get('pocket-app');
+ p.stage(5);p.pick('p:0:0',['As','Ad']);p.pick('p:1:0',['Ks','Kd']);p.pick('b:0',['2c','3h','7d','9s','Jc']);
+ assert.match(ids.get('eq-status').innerHTML,/could not start/);assert.match(app.innerHTML,/J of clubs/);
+ p.stage(3);assert.equal(ids.get('equity-confirm').open,true);ids.get('eq-remove-cancel').onclick();assert.match(app.innerHTML,/J of clubs/);
+ p.stage(3);ids.get('eq-remove-confirm').onclick();assert.doesNotMatch(app.innerHTML,/J of clubs/);assert.match(app.innerHTML,/7 of diamonds/);
+ ids.get('eq-reset').onclick();ids.get('eq-remove-confirm').onclick();assert.match(app.innerHTML,/data-eq-stage="3" aria-pressed="true"/);assert.doesNotMatch(app.innerHTML,/A of spades/);
+});
+
+test('the generated worker source runs the real evaluator and reports exact results',async()=>{
+ const p=equityPage();p.stage(5);p.pick('p:0:0',['As','Ad']);p.pick('p:1:0',['Ks','Kd']);p.pick('b:0',['2c','3h','7d','9s','Jc']);
+ const worker=p.workers.at(-1),messages=[],ctx=vm.createContext({crypto:webcrypto,postMessage:data=>messages.push(data)});
+ vm.runInContext(await worker.source.text(),ctx);ctx.onmessage({data:worker.request});
+ const result=messages.at(-1);assert.equal(result.id,worker.request.id);assert.equal(result.result.players[0].equity,1);assert.equal(result.result.exact,true);
+});
+test('Equity resets after reload and cancels running work on mode exit without touching multiplayer saves',()=>{
+ const p=equityPage(),{ids}=p,before=p.saved;
+ p.pick('p:0:0',['As','Ad']);p.pick('p:1:0',['Ks','Kd']);const worker=p.workers.at(-1);
+ p.nav('modes');assert.equal(worker.terminated,true);p.nav('equity');assert.match(ids.get('eq-status').innerHTML,/cancelled/);
+ assert.match(ids.get('pocket-app').innerHTML,/A of spades/);assert.equal(p.saved,before);
+ const reloaded=page(p.saved),app=reloaded.ids.get('pocket-app');
+ app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='equity').onclick();
+ assert.doesNotMatch(app.innerHTML,/A of spades/);assert.match(reloaded.ids.get('eq-status').innerHTML,/Choose two cards/);
+});
+test('Equity confirms player removal and clearing a card invalidates completed percentages',()=>{
+ const p=equityPage(),{ids}=p,app=ids.get('pocket-app');ids.get('eq-count').value='3';ids.get('eq-count').onchange();
+ p.pick('p:2:0',['As','Ad']);ids.get('eq-count').value='2';ids.get('eq-count').onchange();
+ assert.equal(ids.get('equity-confirm').open,true);ids.get('eq-remove-cancel').onclick();assert.match(app.innerHTML,/A of spades/);
+ ids.get('eq-count').value='2';ids.get('eq-count').onchange();ids.get('eq-remove-confirm').onclick();assert.doesNotMatch(app.innerHTML,/A of spades/);
+ p.pick('p:0:0',['As','Ad']);p.pick('p:1:0',['Ks','Kd']);const w=p.workers.at(-1);
+ w.onmessage({data:{id:w.request.id,result:{exact:false,done:true,completed:20000,total:20000,players:[{equity:.8,win:.8,tie:0},{equity:.2,win:.2,tie:0}]}}});
+ assert.match(ids.get('eq-result-0').innerHTML,/80.0%/);
+ app.querySelectorAll('[data-eq-slot]').find(e=>e.dataset.eqSlot==='p:0:0').onclick();ids.get('eq-picker-clear').onclick();
+ assert.doesNotMatch(ids.get('eq-result-0').innerHTML,/80.0%/);assert.match(ids.get('eq-status').innerHTML,/Choose two cards/);
 });

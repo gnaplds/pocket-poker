@@ -141,3 +141,12 @@ The total amount a player commits in the current betting round after increasing 
 
 **All-in**:
 A player has committed their entire available stack and cannot make further bets in the hand.
+
+**Equity**:
+The expected fraction of a shared pot a player receives across possible final boards, including their share of tied outcomes.
+
+**Win probability**:
+The probability that a player is the sole winner on the final board.
+
+**Tie probability**:
+The probability that a player shares the winning hand with at least one other player. This is distinct from the fraction of the pot received.

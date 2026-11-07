@@ -1,6 +1,6 @@
 # Pocket Poker prototype
 
-Open [dealing-prototype.html](dealing-prototype.html) in a browser. It is one self-contained file, with no dependencies or outgoing network requests. It now includes the accepted Simulation and the approved Pass & Play extension. Android packaging and equity are deferred.
+Open [dealing-prototype.html](dealing-prototype.html) in a browser. It is one self-contained file, with no dependencies or outgoing network requests. It now includes the accepted Simulation and the approved Pass & Play extension. Android packaging is deferred. This local branch adds Equity mode; it has not been published.
 
 For a stable browser origin and local saves, run from the repository root:
 
@@ -41,7 +41,7 @@ Every simulation reset starts equal 20-chip stacks with the button at Seat 1. Di
 Run from the repository root:
 
 ```sh
-node --test --test-isolation=none prototypes/dealing-prototype.test.cjs prototypes/dealing-prototype.ui.test.cjs
+node --test --test-isolation=none prototypes/dealing-prototype.test.cjs prototypes/dealing-prototype.ui.test.cjs prototypes/equity-prototype.test.cjs
 ```
 
 59 tests pass: 47 public-behavior tests cover dealing/ranking, betting and side pots, continuing games, private views, recovery, and hand guidance. Guidance checks cover all categories, defining cards and kickers, board-only hands, simultaneous draws, ace boundaries, overlapping straight patterns, hidden-card independence, old-save compatibility, voting, folded hands, and two-board showdown. Twelve DOM/animation-boundary tests check Simulation cancellation and Peek event wiring, including pointer release/cancel/lost capture, keyboard release, focus/background/navigation, tap reveal, and guidance off, confirmation/cancellation and single action commits for every betting action, collapsible player results, and one celebration per hand. A state test verifies readiness before flop, turn, and river, including recovery during the pause. These boundary doubles do not establish browser rendering or physical touch behavior. All four inline scripts pass syntax checks.
@@ -93,3 +93,20 @@ See the [winner popup](../.scratch/pass-and-play/winner-popup-preview.png) and [
 ### Eight-player tables
 
 Simulation and Pass & Play support 2–8 players. Seven- and eight-player tables use fixed clockwise seats with extra vertical space for public cards and two-board rankings. Existing saved games remain compatible.
+
+## Equity prototype — 2026-11-08
+
+Local branch: `codex/equity-prototype`. This implements the [approved plan](../.scratch/equity-mode/spec.md). Choose Play → Equity to enter 2–8 known hands and a 0/3/4/5-card board. Results appear beside the cards; current categories appear from the flop and exact winner labels on the river.
+
+Preflop uses 20,000 unbiased samples, with provisional percentages marked Estimated. Postflop results are Exact and appear only after enumeration finishes. Equity includes fractional pot shares for multiway ties; Win is an outright win, while Tie means sharing a win. A 100% tie rate is not 100% equity. Percentages use one decimal place and estimated values carry an approximate marker.
+
+Try these manual review cases:
+
+1. Choose River, enter Player 1 A♠ A♦ and Player 2 K♠ K♦, then board 2♣ 3♥ 7♦ 9♠ J♣. Player 1 has 100% exact equity.
+2. Replace the board with A♣ K♣ Q♣ J♣ 10♣. Each player has 50% equity, 0% Win, 100% Tie, and a tied-winner label.
+3. Choose Preflop and confirm removal of board cards. Watch estimated results and sample progress. Cancel, then Calculate again. Edit a hole card while work runs: old results must disappear.
+4. Switch modes and return: entered cards remain. Reload: calculator inputs reset, while the separate multiplayer save remains intact.
+
+Validation: all 70 tests pass (47 engine/session, 18 UI boundary, 5 equity calculation). The generated worker source also executes against the real evaluator in a VM boundary test. All five inline scripts parse. A local HTTP check returns 200 and the served HTML matches the working file. Measured on this machine: roughly 2.3 seconds for two-player preflop sampling, 8.8 seconds for eight players, and 0.18 seconds for the exact two-player flop test including other assertions. These are Node measurements, not browser or phone benchmarks.
+
+Browser control was disabled in Work settings for this pass. Live worker startup, card-picker focus/scroll, phone layout, physical touch speed, screen-reader behavior, and Netlify deployment remain unverified. There are no new runtime dependencies or server requests. The branch is local and has not been pushed.
