@@ -414,7 +414,7 @@ const examples={
  twice:{players:2,deck:completeDeck('Ks As Kh Ah 2c Ad Kd 7c 3c 2d 3d 4h 5c Kc 5d 6h')},
  tie:{players:2,deck:completeDeck('2c Ac 3c Ah 4c Ts Js Qs 4d Ks 4h As')}
 };
-const names=['Alex','Blair','Casey','Drew','Emery','Finn','Gray','Harper'];
+const names=Array.from({length:8},(_,i)=>'Player '+(i+1));
 const name=i=>names[i]||('Player '+(i+1));
 const safe=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let state=Poker.create(4,shuffled(),true),playing=false,busy=false,guideBusy=false,playbackId=0;

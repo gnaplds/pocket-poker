@@ -317,6 +317,6 @@ test('setup offers eight named seats and preserves names when changing table siz
  p.ids.get('mp-name-0').value='Robin';
  p.ids.get('mp-count').value='8';p.ids.get('mp-count').onchange();
  assert.equal(p.ids.get('mp-name-0').value,'Robin');
- assert.equal(p.ids.get('mp-name-7').value,'Harper');
+ for(let i=1;i<8;i++)assert.equal(p.ids.get('mp-name-'+i).value,'Player '+(i+1));
  assert.match(app.innerHTML,/Seat 8/);
 });
