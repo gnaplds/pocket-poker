@@ -438,10 +438,14 @@ test('Simulation fold wins celebrate once and replay asks before discarding an u
  const p=page(),{ids}=p,app=ids.get('pocket-app');
  app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='simulation').onclick();
  await ids.get('sim-deal').onclick();const first=ids.get('players').innerHTML;
+ assert.doesNotMatch(ids.get('results').innerHTML,/result-outcome/);
  ids.get('replay').onclick();assert.equal(ids.get('sim-confirm').open,true);
  ids.get('sim-confirm-no').onclick();assert.equal(ids.get('remaining').textContent,44);
  for(let i=0;i<3;i++){ids.get('fold').onclick();ids.get('sim-confirm-yes').onclick();}
  assert.equal(ids.get('sim-winner').open,true);assert.match(ids.get('sim-winner-summary').innerHTML,/wins/);
+ assert.match(ids.get('results').innerHTML,/<summary>.*result-outcome.*Won .*chips.*<\/summary>/);
+ assert.equal((ids.get('results').innerHTML.match(/No pot won/g)||[]).length,3);
+ assert.equal((ids.get('players').innerHTML.match(/seat-loser/g)||[]).length,3);
  ids.get('sim-winner-close').onclick();ids.get('simulation-menu').onclick();
  app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='simulation').onclick();assert.equal(ids.get('sim-winner').open,false);
  await ids.get('replay').onclick();assert.equal(ids.get('remaining').textContent,52);
