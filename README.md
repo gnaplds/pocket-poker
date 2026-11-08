@@ -90,7 +90,7 @@ Use Node.js 26 or later. No npm dependencies are required.
 node --test --test-isolation=none prototypes/dealing-prototype.test.cjs prototypes/dealing-prototype.ui.test.cjs prototypes/equity-prototype.test.cjs
 ```
 
-The current suite has **79 tests** covering card order, hand rankings, betting rules, side pots, tied payouts, 2–8 players, two-board runouts, saved-game recovery, private views, and UI event handling. UI tests use a DOM boundary double; they do not replace browser or physical-device checks.
+The current suite has **82 tests** covering card order, hand rankings, betting rules, side pots, tied payouts, 2–8 players, two-board runouts, saved-game recovery, private views, and UI event handling. UI tests use a DOM boundary double; they do not replace browser or physical-device checks.
 
 Desktop browser checks include phone-width layouts, concealed cards, runouts, result displays, and winner styling. Physical Android touch behavior and screen-reader testing remain pending. The evaluator is a JavaScript reference implementation and has not been exhaustively checked against every possible hand or betting sequence.
 

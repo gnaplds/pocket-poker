@@ -5,8 +5,9 @@ const vm=require('node:vm');
 const {webcrypto}=require('node:crypto');
 
 // A DOM/animation boundary double: checks event wiring, not browser layout or touch input.
-function page(saved=null,workerAvailable=true){
+function page(saved=null,workerAvailable=true,saveFails=false){
   const html=fs.readFileSync(__dirname+'/dealing-prototype.html','utf8');
+  let reloads=0;
   const ids=new Map(),workers=[],flights=[],scrolls=[],windowEvents={},documentEvents={};
   class Element {
     constructor(){this.style={};this.dataset={};this.value='';this.checked=false;this.disabled=false;this.hidden=false;this.classList={add(){}};this.textContent='';}
@@ -50,9 +51,9 @@ function page(saved=null,workerAvailable=true){
   const blobs=new Map();
   const workerURL={createObjectURL(blob){const key='blob:'+blobs.size;blobs.set(key,blob);return key;},revokeObjectURL(key){blobs.delete(key);}};
   class TestWorker{constructor(url){this.source=blobs.get(url);if(!workerAvailable)throw Error('Worker unavailable');workers.push(this);}postMessage(data){this.request=data;}terminate(){this.terminated=true;}}
-  const ctx=vm.createContext({Worker:TestWorker,Blob,URL:workerURL,document,crypto:webcrypto,matchMedia:()=>({matches:true}),localStorage:{getItem:()=>saved,setItem:(key,value)=>{saved=value;}},window:{addEventListener:(type,fn)=>{(windowEvents[type]??=[]).push(fn);},scrollTo(options){scrolls.push({options,saved});}},setTimeout});
+  const ctx=vm.createContext({Worker:TestWorker,Blob,URL:workerURL,document,crypto:webcrypto,matchMedia:()=>({matches:true}),localStorage:{getItem:()=>saved,setItem:(key,value)=>{if(saveFails)throw Error("Storage full");saved=value;}},window:{location:{reload(){reloads++;}},addEventListener:(type,fn)=>{(windowEvents[type]??=[]).push(fn);},scrollTo(options){scrolls.push({options,saved});}},setTimeout});
   for(const [,script] of html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g))vm.runInContext(script,ctx);
-  return {ids,workers,flights,scrolls,windowEvents,documentEvents,document,get saved(){return saved;}};
+  return {get reloads(){return reloads;},ids,workers,flights,scrolls,windowEvents,documentEvents,document,get saved(){return saved;}};
 }
 
 function savedFlop(reveal='hold',guidance=true,situation='flop',cards='6h 2c 7h 3d 4s 8h 9c Kh'){
@@ -501,3 +502,27 @@ test('Simulation and Pass & Play share community board labels and street present
  for(let i=0;i<4;i++){ids.get('call-check').onclick();ids.get('sim-confirm-yes').onclick();}
  await ids.get('sim-deal').onclick();assert.match(ids.get('stage').innerHTML,/class="board-stage">Flop/);
 });
+
+test('multiplayer equity uses public hands only and ignores stale results after leaving',()=>{
+ const p=page(savedFlop('hold',true,'allin')),{ids,workers}=p,app=ids.get('pocket-app');
+ app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();ids.get('resume-game').onclick();
+ const w=workers.at(-1);assert.ok(w);assert.deepEqual(Array.from(w.request.visible.burns),[]);assert.equal(w.request.visible.hands.length,2);
+ w.onmessage({data:{id:w.request.id,result:{board:0,seats:[0,1],exact:true,done:true,players:[{equity:.75},{equity:.25}]}}});
+ assert.match(ids.get('mp-equity-0').innerHTML,/75.0%/);
+ ids.get('save-leave').onclick();assert.equal(w.terminated,true);
+ const normal=page(savedFlop()),a=normal.ids.get('pocket-app');a.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();normal.ids.get('resume-game').onclick();assert.equal(normal.workers.length,0);
+});
+
+test('game title confirms before saving and reloading home',()=>{
+ const p=page(savedFlop()),{ids}=p,app=ids.get('pocket-app');
+ app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();ids.get('resume-game').onclick();
+ ids.get('game-home').onclick();assert.equal(ids.get('home-confirm').open,true);assert.equal(p.reloads,0);
+ ids.get('home-cancel').onclick();assert.equal(ids.get('home-confirm').open,false);
+ ids.get('game-home').onclick();ids.get('home-save').onclick();assert.equal(p.reloads,1);assert.ok(p.saved);
+});
+
+ test('home reload is blocked when saving fails',()=>{
+ const p=page(savedFlop(),true,true),{ids}=p,app=ids.get('pocket-app');
+ app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();ids.get('resume-game').onclick();
+ ids.get('game-home').onclick();ids.get('home-save').onclick();assert.equal(p.reloads,0);
+ });
