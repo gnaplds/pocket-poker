@@ -526,3 +526,15 @@ test('game title confirms before saving and reloading home',()=>{
  app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();ids.get('resume-game').onclick();
  ids.get('game-home').onclick();ids.get('home-save').onclick();assert.equal(p.reloads,0);
  });
+
+test('mode, setup and Equity headers share a logo and confirmed home action',()=>{
+ for(const mode of ['modes','setup','equity']){
+  const p=page(),{ids}=p,app=ids.get('pocket-app');
+  app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();
+  if(mode!=='modes')app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav===mode).onclick();
+  assert.match(app.innerHTML,/pocket-logo header-logo/);
+  ids.get('screen-home').onclick();assert.equal(ids.get('home-confirm').open,true);assert.equal(p.reloads,0);
+  ids.get('home-cancel').onclick();assert.equal(p.reloads,0);
+  ids.get('screen-home').onclick();ids.get('home-save').onclick();assert.equal(p.reloads,1);
+ }
+});

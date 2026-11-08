@@ -120,7 +120,7 @@ Browser control was disabled in Work settings for this pass. Live worker startup
 
 ## Simulation refresh validation — 2026-11-08
 
-Local branch: `codex/simulation-refresh`. All 82 tests pass: 47 engine/session, 28 UI-boundary, and 7 equity tests. Added checks cover dead cards, shared-prefix boards, fold wins, street pauses, slider confirmations, cancellation/error recovery, replay, partial-flop controls, and multiplayer-save isolation.
+Local branch: `codex/simulation-refresh`. All 83 tests pass: 47 engine/session, 29 UI-boundary, and 7 equity tests. Added checks cover dead cards, shared-prefix boards, fold wins, street pauses, slider confirmations, cancellation/error recovery, replay, partial-flop controls, and multiplayer-save isolation.
 
 The in-app browser completed real worker calculations, preflop betting, and an eight-player two-board all-in hand with automatic payouts. At an observed 401 CSS-pixel viewport, 2/6/7/8-player layouts had no seat overlaps; the measured two-board eight-seat table was about 604 pixels high with both categories visible. Two/six-seat preflop tables were about 396 pixels and seven-seat preflop about 479 pixels. These are content-dependent observations, not fixed heights or phone performance guarantees. A sticky-scroll defect found in the browser was fixed by scrolling to an anchor above the board.
 
