@@ -489,3 +489,15 @@ test('per-card study controls finish the current partial flop before offering th
  assert.match(ids.get('sim-equity-status').innerHTML,/completed street/);
  await ids.get('sim-deal').onclick();assert.equal(ids.get('remaining').textContent,40);assert.match(ids.get('sim-deal').textContent,/Deal Turn/);
 });
+
+test('Simulation and Pass & Play share community board labels and street presentation',async()=>{
+ const p=page(savedFlop()),{ids}=p,app=ids.get('pocket-app');
+ app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();ids.get('resume-game').onclick();
+ assert.match(app.innerHTML,/class="board-stage">Flop/);
+ assert.match(app.innerHTML,/class="board-meta">One board/);
+ ids.get('save-leave').onclick();app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='simulation').onclick();
+ await ids.get('sim-deal').onclick();assert.match(ids.get('stage').innerHTML,/class="board-stage">Preflop/);
+ assert.match(ids.get('stage').innerHTML,/class="board-meta">One board/);
+ for(let i=0;i<4;i++){ids.get('call-check').onclick();ids.get('sim-confirm-yes').onclick();}
+ await ids.get('sim-deal').onclick();assert.match(ids.get('stage').innerHTML,/class="board-stage">Flop/);
+});
