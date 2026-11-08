@@ -496,7 +496,7 @@ test('Simulation and Pass & Play share community board labels and street present
  app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();ids.get('resume-game').onclick();
  assert.match(app.innerHTML,/class="board-stage">Flop/);
  assert.match(app.innerHTML,/class="board-meta">One board/);
- ids.get('save-leave').onclick();app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='simulation').onclick();
+ ids.get('save-leave').onclick();ids.get('home-save').onclick();app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='simulation').onclick();
  await ids.get('sim-deal').onclick();assert.match(ids.get('stage').innerHTML,/class="board-stage">Preflop/);
  assert.match(ids.get('stage').innerHTML,/class="board-meta">One board/);
  for(let i=0;i<4;i++){ids.get('call-check').onclick();ids.get('sim-confirm-yes').onclick();}
@@ -509,31 +509,32 @@ test('multiplayer equity uses public hands only and ignores stale results after 
  const w=workers.at(-1);assert.ok(w);assert.deepEqual(Array.from(w.request.visible.burns),[]);assert.equal(w.request.visible.hands.length,2);
  w.onmessage({data:{id:w.request.id,result:{board:0,seats:[0,1],exact:true,done:true,players:[{equity:.75},{equity:.25}]}}});
  assert.match(ids.get('mp-equity-0').innerHTML,/75.0%/);
- ids.get('save-leave').onclick();assert.equal(w.terminated,true);
+ ids.get('save-leave').onclick();ids.get('home-save').onclick();assert.equal(w.terminated,true);
  const normal=page(savedFlop()),a=normal.ids.get('pocket-app');a.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();normal.ids.get('resume-game').onclick();assert.equal(normal.workers.length,0);
 });
 
-test('game title confirms before saving and reloading home',()=>{
+test('Save & Leave confirms before saving and reloading home',()=>{
  const p=page(savedFlop()),{ids}=p,app=ids.get('pocket-app');
  app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();ids.get('resume-game').onclick();
- ids.get('game-home').onclick();assert.equal(ids.get('home-confirm').open,true);assert.equal(p.reloads,0);
+ ids.get('save-leave').onclick();assert.equal(ids.get('home-confirm').open,true);assert.equal(p.reloads,0);
  ids.get('home-cancel').onclick();assert.equal(ids.get('home-confirm').open,false);
- ids.get('game-home').onclick();ids.get('home-save').onclick();assert.equal(p.reloads,1);assert.ok(p.saved);
+ ids.get('save-leave').onclick();ids.get('home-save').onclick();assert.equal(p.reloads,1);assert.ok(p.saved);
 });
 
  test('home reload is blocked when saving fails',()=>{
  const p=page(savedFlop(),true,true),{ids}=p,app=ids.get('pocket-app');
  app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();ids.get('resume-game').onclick();
- ids.get('game-home').onclick();ids.get('home-save').onclick();assert.equal(p.reloads,0);
+ ids.get('save-leave').onclick();ids.get('home-save').onclick();assert.equal(p.reloads,0);
  });
 
-test('mode, setup and Equity titles go home without confirmation',()=>{
+test('mode, setup and Equity headers have static branding and a Back action',()=>{
  for(const mode of ['modes','setup','equity']){
   const p=page(),{ids}=p,app=ids.get('pocket-app');
   app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();
   if(mode!=='modes')app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav===mode).onclick();
   assert.match(app.innerHTML,/pocket-logo header-logo/);
   assert.match(app.innerHTML,/>Back<\/button>/);
-  ids.get('screen-home').onclick();assert.notEqual(ids.get('home-confirm').open,true);assert.equal(p.reloads,1);
+  assert.doesNotMatch(app.innerHTML,/<button[^>]*class="brand-small/);
+  app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav===(mode==='modes'?'home':'modes')).onclick();assert.notEqual(ids.get('home-confirm').open,true);assert.equal(p.reloads,0);
  }
 });
