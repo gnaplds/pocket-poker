@@ -527,14 +527,13 @@ test('game title confirms before saving and reloading home',()=>{
  ids.get('game-home').onclick();ids.get('home-save').onclick();assert.equal(p.reloads,0);
  });
 
-test('mode, setup and Equity headers share a logo and confirmed home action',()=>{
+test('mode, setup and Equity titles go home without confirmation',()=>{
  for(const mode of ['modes','setup','equity']){
   const p=page(),{ids}=p,app=ids.get('pocket-app');
   app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();
   if(mode!=='modes')app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav===mode).onclick();
   assert.match(app.innerHTML,/pocket-logo header-logo/);
-  ids.get('screen-home').onclick();assert.equal(ids.get('home-confirm').open,true);assert.equal(p.reloads,0);
-  ids.get('home-cancel').onclick();assert.equal(p.reloads,0);
-  ids.get('screen-home').onclick();ids.get('home-save').onclick();assert.equal(p.reloads,1);
+  assert.match(app.innerHTML,/>Back<\/button>/);
+  ids.get('screen-home').onclick();assert.notEqual(ids.get('home-confirm').open,true);assert.equal(p.reloads,1);
  }
 });
