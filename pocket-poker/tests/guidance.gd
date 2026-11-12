@@ -1,0 +1,17 @@
+extends SceneTree
+const Poker = preload("res://core/poker.gd")
+func _initialize():
+	var wheel = Poker.guide(["As", "2d"], ["3h", "4c", "9s"])
+	assert(wheel.draws.size() == 1 and wheel.draws[0].title == "Straight draw", "A234 needs a five at the end, not an inside card")
+	var inside = Poker.guide(["As", "2d"], ["3h", "5c", "9s"])
+	assert(inside.draws[0].title == "Gutshot / inside straight draw")
+	var open = Poker.guide(["6s", "7d"], ["8h", "9c", "As"])
+	assert(open.draws.size() == 2 and open.draws.all(func(d): return d.title == "Open-ended straight draw"))
+	var double = Poker.guide(["5s", "7d"], ["8h", "9c", "Js"])
+	assert(double.draws.size() == 2 and double.draws.all(func(d): return d.title == "Double-gutshot straight draw"))
+	var board = Poker.guide(["2c", "3d"], ["As", "Ks", "Qs", "Js", "Ts"])
+	assert(board.description.begins_with("Your best hand is on the board") and board.draws.is_empty())
+	var full = Poker.guide(["Ac", "Ad"], ["Ah", "Ks", "Kd"])
+	assert(full.defining.size() == 5 and full.draws.is_empty())
+	print("Hand guidance, draw shapes, highlights and board-only hands: passed")
+	quit()
