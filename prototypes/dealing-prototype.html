@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pocket Poker</title></head><body><script id="poker-motion">
 const FX=(()=>{
- const TIME={shuffle:1200,chip:300,cue:200,winner:180,dealer:300,highlight:300},MOVE='cubic-bezier(.77,0,.175,1)';
- const enhanced=true;let epoch=0,timers=[],animations=[],nodes=[],abortShuffle=null;
+ const TIME={shuffle:1200,chip:300,cue:200,winner:180,dealer:300,highlight:300,reveal:350,payout:250,collection:1500},MOVE='cubic-bezier(.77,0,.175,1)';
+ const enhanced=true;let epoch=0,timers=[],animations=[],nodes=[],cleanups=[],abortShuffle=null;
  const reduced=()=>matchMedia('(prefers-reduced-motion: reduce)').matches||(!document.getElementById('simulation')?.hidden&&document.getElementById('reduce')?.checked);
  const on=()=>enhanced&&!reduced();
  function later(fn,delay){const id=epoch;timers.push(setTimeout(()=>{if(id===epoch)fn();},delay));}
- function clear(){epoch++;timers.forEach(clearTimeout);timers=[];animations.forEach(a=>a.cancel());animations=[];nodes.forEach(n=>n.remove());nodes=[];abortShuffle?.();abortShuffle=null;}
+ function clear(){epoch++;timers.forEach(clearTimeout);timers=[];animations.forEach(a=>a.cancel());animations=[];nodes.forEach(n=>n.remove());nodes=[];cleanups.splice(0).forEach(fn=>fn());abortShuffle?.();abortShuffle=null;}
  function animate(el,frames,options){if(!el||!on())return;const a=el.animate(frames,options);animations.push(a);a.finished.catch(()=>{});return a;}
  function cue(el){animate(el,[{outline:'3px solid #e2b43c'},{outline:'3px solid transparent'}],{duration:TIME.cue});}
  function snapshot(mode,actor){return document.querySelectorAll(mode==='mp'?'.mp-oval .mp-seat':'#players .seat')[actor]?.getBoundingClientRect();}
@@ -16,7 +16,42 @@ const FX=(()=>{
  animate(chip,[{transform:'translate(0,0)'},{transform:`translate(${dx/2}px,${dy/2-24}px)`,offset:.5},{transform:`translate(${dx}px,${dy}px)`}],{duration:TIME.chip,easing:MOVE,fill:'forwards'});
  later(()=>{chip.remove();cue(document.querySelector(mode==='mp'?'.mp-oval .acting':'#players .acting'));},TIME.chip);
  }
- function winner(dialog){if(!enhanced||reduced()){dialog.showModal();return;}cue(document.querySelector('.mp-seat.seat-winner'));later(()=>{if(!document.hidden&&!dialog.open)dialog.showModal();},TIME.winner);}
+ function reveal(previous,next){
+  if(!previous||!on())return 0;
+  let count=0;
+  next.seats.forEach((seat,i)=>{
+   if(!seat.publicCards||previous.seats[i]?.publicCards||seat.folded)return;
+   for(let j=0;j<2;j++){
+    const card=document.getElementById(`mp-hole-${i}-${j}`);if(!card)continue;
+    const box=card.getBoundingClientRect(),scene=document.createElement('span');scene.className='public-flip';scene.setAttribute('aria-hidden','true');
+    Object.assign(scene.style,{left:box.left+'px',top:box.top+'px',width:box.width+'px',height:box.height+'px'});
+    const rotor=document.createElement('span');rotor.className='public-flip-rotor';
+    const back=document.createElement('span');back.className='card card-back public-flip-back';back.textContent='◆';
+    const face=card.cloneNode(true);face.removeAttribute('id');face.classList.add('public-flip-face');
+    rotor.append(back,face);scene.append(rotor);document.body.append(scene);nodes.push(scene);
+    const visibility=card.style.visibility;card.style.visibility='hidden';const restore=()=>{card.style.visibility=visibility;scene.remove();};cleanups.push(restore);
+    animate(rotor,[{transform:'rotateY(0deg)'},{transform:'rotateY(180deg)'}],{duration:TIME.reveal,easing:MOVE,fill:'forwards'});later(restore,TIME.reveal);count++;
+   }
+  });return count?TIME.reveal:0;
+ }
+ function payoutGroups(pots){return (pots||[]).flatMap(p=>p.shares.map(share=>share.awards.filter(a=>a.amount>0))).filter(group=>group.length);}
+ function collect(mode,group,duration){
+  const source=document.querySelector(mode==='mp'?'#mp-community strong':'#sim-pot');if(!source)return;
+  const a=source.getBoundingClientRect(),seats=document.querySelectorAll(mode==='mp'?'.mp-oval .mp-seat':'#players .seat');
+  for(const award of group){const target=seats[award.player];if(!target)continue;const b=target.getBoundingClientRect(),chip=document.createElement('span');chip.className='fx-chip';chip.textContent='●●';chip.setAttribute('aria-hidden','true');Object.assign(chip.style,{left:a.left+a.width/2+'px',top:a.top+'px'});document.body.append(chip);nodes.push(chip);
+   const dx=b.left+b.width/2-a.left-a.width/2,dy=b.top+b.height/2-a.top;
+   animate(chip,[{transform:'translate(0,0)'},{transform:`translate(${dx/2}px,${dy/2-20}px)`,offset:.5},{transform:`translate(${dx}px,${dy}px)`}],{duration,easing:MOVE,fill:'forwards'});later(()=>chip.remove(),duration);
+  }
+ }
+ // Reveal → best five → main/side pots (A then B) → result; accounting is already settled.
+ function winner(dialog,{mode='mp',pots=[],revealDelay=0,showdown=true}={}){
+  if(!on()){highlightResults();dialog.showModal();return;}
+  const groups=payoutGroups(pots),duration=groups.length?Math.min(TIME.payout,TIME.collection/groups.length):0;
+  later(()=>{if(showdown)highlightResults();cue(document.querySelector(mode==='mp'?'.mp-oval .seat-winner':'#players .seat-winner'));},revealDelay);
+  const start=revealDelay+(showdown?TIME.highlight:0);
+  groups.forEach((group,i)=>later(()=>collect(mode,group,duration),start+i*duration));
+  later(()=>{if(!document.hidden&&!dialog.open)dialog.showModal();},start+groups.length*duration);
+ }
  async function shuffle(){if(!on())return true;
  const dialog=document.createElement('dialog');dialog.className='fx-shuffle';dialog.setAttribute('aria-label','Preparing hand');dialog.innerHTML='<div class="fx-stacks" aria-hidden="true"><i>♠</i><i>♠</i><i>♠</i><i>♠</i></div><h2>Preparing hand…</h2><p>Mixing the deck for a fresh hand.</p><button>Pause preparation</button>';document.body.append(dialog);dialog.showModal();
  // Storyboard: separate packets (0–300), interleave (300–900), square deck (900–1200).
@@ -65,14 +100,14 @@ const FX=(()=>{
  }
  function install(){
  document.body.dataset.effects='true';
- const seen=new Map();new MutationObserver(()=>{highlightResults();if(!on())return;for(const [key,selector] of [['mp-actor','.mp-oval .acting'],['sim-actor','#players .acting'],['mp-street','#mp-community .board-stage'],['sim-street','#stage .board-stage']]){const el=document.querySelector(selector),value=key.includes('actor')?el?.querySelector('strong,.seat-name')?.textContent:el?.textContent;if(seen.get(key)!==value){const old=seen.get(key);seen.set(key,value);if(old&&value)later(()=>cue(document.querySelector(selector)),key.includes('actor')?TIME.chip:0);}}}).observe(document.body,{childList:true,subtree:true});
+ const seen=new Map();new MutationObserver(()=>{if(!on())return;for(const [key,selector] of [['mp-actor','.mp-oval .acting'],['sim-actor','#players .acting'],['mp-street','#mp-community .board-stage'],['sim-street','#stage .board-stage']]){const el=document.querySelector(selector),value=key.includes('actor')?el?.querySelector('strong,.seat-name')?.textContent:el?.textContent;if(seen.get(key)!==value){const old=seen.get(key);seen.set(key,value);if(old&&value)later(()=>cue(document.querySelector(selector)),key.includes('actor')?TIME.chip:0);}}}).observe(document.body,{childList:true,subtree:true});
  matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change',()=>{clear();});
  }
  // Any new user action cancels obsolete decoration, never game state or card travel.
  document.addEventListener('click',()=>{if(!abortShuffle)clear();},true);
  window.addEventListener('blur',clear);document.addEventListener('visibilitychange',()=>{if(document.hidden)clear();});
  document.addEventListener('DOMContentLoaded',install);
- return {get enhanced(){return enhanced;},clear,shuffle,winner,snapshot,contribution,moveDealer,resetHighlights:()=>highlighted.clear(),lockDealing,unlockDealing};
+ return {get enhanced(){return enhanced;},clear,shuffle,winner,reveal,payoutGroups,snapshot,contribution,moveDealer,resetHighlights:()=>highlighted.clear(),lockDealing,unlockDealing};
 })();
 
 </script>
@@ -651,7 +686,7 @@ function celebrateSimulation(){
   simCelebrated=true;
   const winners=state.betting?state.betting.awards.flatMap((v,i)=>v?[i]:[]):[...new Set(state.boards.flatMap(b=>activeResult(b).winners))];
   $('sim-winner-summary').innerHTML='<p>'+winners.map(i=>safe(name(i))).join(' &amp; ')+(winners.length===1?' wins':' share the wins')+'</p>'+state.boards.map((_,j)=>simBoardVerdict(j)?'<h3>Board '+(j?'B':'A')+'</h3>'+simBoardVerdict(j):'').join('');
-  FX.winner($('sim-winner'));
+  FX.winner($('sim-winner'),{mode:'sim',pots:state.betting?Poker.potResults(state):[],showdown:!state.betting||state.betting.folded.filter(f=>!f).length>1});
   if(!$('reduce').checked)$('sim-celebration').innerHTML=`<div class="hand-confetti" aria-hidden="true">${Array.from({length:36},(_,i)=>`<i style="--x:${i*37%100}%;--drift:${(i%7-3)*30}px;--delay:${i%8*.06}s;--spin:${180+i*29}deg;--color:${['#d4a52b','#4169e1','#c42f3d','#288362'][i%4]}"></i>`).join('')}</div>`;
 }
 $('sim-winner-close').onclick=()=>{$('sim-winner').close();$('sim-celebration').innerHTML='';$('shuffle').focus();};
@@ -871,7 +906,7 @@ render();
   function navigate(next){
     if(screen==='equity'){stopEquity();$('equity-picker').close();$('equity-confirm').close();eqSlot=null;eqPending=null;}
     if(screen==='game'){conceal();stopPublicEquity();}
-    if(screen==='simulation'){stopSimulationEquity();cancelSimConfirm();$('sim-winner').close();$('sim-celebration').innerHTML='';}
+    if(screen==='simulation'){FX.clear();stopSimulationEquity();cancelSimConfirm();$('sim-winner').close();$('sim-celebration').innerHTML='';}
     playing=false;playbackId++;document.querySelectorAll('.ghost,.shuffle-ghost').forEach(el=>{el.getAnimations().forEach(a=>a.cancel());el.remove();});
     screen=next;message='';$('simulation').hidden=next!=='simulation';$('simulation-dock').hidden=next!=='simulation';app.hidden=next==='simulation';
     if(next!=='simulation')renderApp();else render();window.scrollTo(0,0);
@@ -921,7 +956,7 @@ render();
     const history=`<section class="public-history" aria-label="Betting history"><h2>Betting history</h2>${v.historyRounds.map(round=>`<section class="history-round"><h3>${safe(round.label)}</h3>${round.actions.length?`<ol>${round.actions.map(e=>`<li>${safe(v.seats[e.player].name)}: ${safe(e.text)}</li>`).join('')}</ol>`:'<p>No betting</p>'}</section>`).join('')}</section>`;
     return `<div class="game-top"><div><div id="game-home" class="brand-small brand-home">${brand()}</div><small>Hand ${v.hand} · Blinds 1 / 2</small></div><button id="save-leave">Save &amp; Leave</button></div><section id="mp-community" class="mp-board" aria-label="Community cards"><div class="pot-strip"><strong>Pot ${v.pot}</strong>${communityMeta(v.boards,v.shared,v.settled?'complete':v.stage)}</div>${v.boards.map((board,j)=>`<div class="board-line"><span class="board-name">${j?'B':'A'}</span><div class="board-cards">${Array.from({length:5},(_,i)=>card(board[i],i<v.shared?'shared':'',`mp-board-${j}-${i}`)).join('')}</div></div>${boardVerdict(v,j)}`).join('')}</section><div class="game-scroll" id="game-scroll" tabindex="0" aria-label="Table and betting history"><section class="mp-oval seats-${v.seats.length} ${v.seats.length>6?'large-table':''}" aria-label="Clockwise seats"><div class="mp-center">${back('mp-deck')}<span id="mp-burn" class="burn-holder" aria-label="Burn pile">${v.burns}</span><p>${v.remaining} in deck</p></div>${v.seats.map((p,i)=>`<div class="mp-seat${v.settled?(p.award>0?' seat-winner':' seat-loser'):''} action-${p.actionColor} ${i===v.actor?'acting':''} ${p.folded&&p.seated?'folded':''} ${p.seated?'':'out'}" style="${seatStyle(i,v.seats.length)}" aria-label="Seat ${i+1}: ${safe(p.name)}"><strong title="${safe(p.name)}">${safe(p.name)}</strong><small>${safe(p.position)}${!p.seated&&p.position!=='Out'?' · empty':''}</small>${i===v.button?'<span class="dealer" aria-label="Dealer button">D</span>':''}<div class="chips">${p.stack} chips</div><div class="mini-holes ${p.publicCards?'public-holes':''}">${[0,1].map(j=>p.publicCards?card(p.cards[j],'',`mp-hole-${i}-${j}`):p.cards.length>j?back(`mp-hole-${i}-${j}`):card(null,'',`mp-hole-${i}-${j}`)).join('')}</div>${p.categories.map((category,j)=>category?`<small class="seat-rank">${v.boards.length===2?(j?'B: ':'A: '):''}${safe(category)}</small>`:'').join('')}<small id="mp-equity-${i}" class="mp-equity"></small><small class="seat-note">${v.settled&&p.award>0?'Won '+p.award+' chips':p.seated&&!v.settled?[safe(p.lastAction),p.paid?p.paid+' in':''].filter(Boolean).join(' · '):''}</small></div>`).join('')}</section><div class="game-status" role="status">${safe(message|| (v.publicCards?(v.settled?'Shared showdown results':'Hole cards are public. The hand finishes after the final river.'):v.phase==='turn'?'Your cards hide as soon as you finish your action.':v.phase==='handoff'?'Pass the phone with all cards hidden.':'Shared table view'))}</div>${v.publicCards?'<p class="subtle">Hand equity uses public cards only and compares one equal pot, not side-pot payouts. ≈ means estimated.</p>':''}${v.phase==='result'?'':history}</div><section class="turn-box" aria-label="${v.phase==='result'?'Hand result':'Turn controls'}">${turnHTML(v)}</section>${v.phase==='result'?history:''}`;
   }
-  function renderApp(){
+  function renderApp(previous=null){
     const closedResults=[...app.querySelectorAll('.player-result')].map(el=>!el.open);
     const v=screen==='game'?Match.view(match):null;
     app.className='pocket-app'+(v?' game-screen'+(v.phase!=='result'?' game-active':'')+(v.phase==='turn'?' private-turn':''):'');
@@ -933,13 +968,14 @@ render();
       const v=Match.view(match),celebrate=v.phase==='result'&&celebratedHand!==v.hand;
       if(v.phase==='result')celebratedHand=v.hand;
       app.innerHTML=gameHTML(v)+(celebrate?`<div class="hand-confetti" aria-hidden="true">${Array.from({length:v.winner===null?20:48},(_,i)=>`<i style="--x:${(i*37)%100}%;--drift:${(i%7-3)*30}px;--delay:${i%8*.06}s;--spin:${180+i*29}deg;--color:${['#d4a52b','#4169e1','#c42f3d','#288362'][i%4]}"></i>`).join('')}</div>`:'');
+      const revealDelay=FX.reveal(previous,v);
       if(celebrate){
         const winners=v.seats.filter(p=>p.award>0);
         $('winner-popup').className='winner-dialog'+(v.winner!==null?' game-winner':'');
         $('winner-continue').textContent=v.winner===null?'Next hand':'Rematch';
         $('winner-title').textContent=v.winner!==null?v.seats[v.winner].name+' wins the game!':winners.length===1?winners[0].name+' wins!':'Pot winners';
         $('winner-summary').innerHTML=winners.map(p=>`<p><strong>${safe(p.name)}</strong> receives ${p.award} chips</p>`).join('')+(!v.showdown?'<p>Everyone else folded.</p>':'');
-        FX.winner($('winner-popup'));
+        FX.winner($('winner-popup'),{mode:'mp',pots:v.pots,revealDelay,showdown:v.showdown});
       }
     }
     app.querySelectorAll('.player-result').forEach((el,i)=>{if(closedResults[i])el.open=false;});
@@ -1169,7 +1205,7 @@ render();
   async function send(c){
     const before=Match.view(match),from=FX.snapshot('mp',before.actor),total=before.actor===null?0:match.game.betting.total[before.actor];
     if(c.type==='nextHand'){mpPrepared=false;FX.clear();}
-    try{match=Match.command(match,c);detailsOpen=false;message='';persist();renderApp();if(c.type==='bet')FX.contribution('mp',from,match.game.betting.total[before.actor]-total);if(c.type==='ready')$('peek-button')?.focus({preventScroll:true});if(c.type==='nextHand'){const current=match;const moved=await FX.moveDealer(before.button,Match.view(match).button);if(match!==current||document.hidden)return;if(!moved){conceal();return;}}pump();}
+    try{match=Match.command(match,c);detailsOpen=false;message='';persist();renderApp(before);if(c.type==='bet'&&!Match.view(match).settled)FX.contribution('mp',from,match.game.betting.total[before.actor]-total);if(c.type==='ready')$('peek-button')?.focus({preventScroll:true});if(c.type==='nextHand'){const current=match;const moved=await FX.moveDealer(before.button,Match.view(match).button);if(match!==current||document.hidden)return;if(!moved){conceal();return;}}pump();}
     catch(e){peek(false);message=e.message;const status=app.querySelector('.game-status');if(status)status.textContent=message;}
   }
   let mpPrepared=false;
@@ -1298,4 +1334,9 @@ body[data-effects="true"] [data-winning-hand] .card.defining{outline:3px solid #
 body[data-effects="true"] .winning-caption{font-size:12px;color:#795410;font-weight:700}
 body[data-effects="false"] .winning-caption{display:none}
 
+</style><style>
+.public-flip{position:fixed;perspective:800px;z-index:1200;pointer-events:none}
+.public-flip-rotor{position:absolute;inset:0;transform-style:preserve-3d}
+.public-flip .card{position:absolute;inset:0;width:100%;height:100%;margin:0;backface-visibility:hidden}
+.public-flip-face{transform:rotateY(180deg)}
 </style></body></html>

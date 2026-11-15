@@ -139,3 +139,5 @@ The website uses locally hosted Inter Variable for headings, branding, cards, an
 ### Local animation update
 
 The main HTML includes centered shuffle preparation, dealing input/scroll lock, chip contribution cues, dealer movement, and per-board winning-card emphasis. It uses normal local saves; the comparison switcher is not included. Original card travel and private Peek behavior remain. Run `node --test --test-isolation=none prototypes/*.test.cjs` from the repository root, including the motion boundary checks. Physical-phone smoothness and full eight-player/two-board animation review remain pending.
+
+Showdown now flips only newly public eligible hole cards. Payout animation follows main/side-pot and board order, sends tied awards together, and caps collection at 1.5 seconds. Values settle immediately; new actions or interruption cancel decoration. Reduced motion shows the final state directly. Simulation's visible cards do not flip again.
