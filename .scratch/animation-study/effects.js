@@ -1,7 +1,7 @@
 // Throwaway comparison. All practice saves stay in memory.
 const motionMemory={getItem:()=>null,setItem:()=>{}};
 const FX=(()=>{
- const TIME={shuffle:1200,chip:300,cue:200,winner:180},MOVE='cubic-bezier(.77,0,.175,1)';
+ const TIME={shuffle:1200,chip:300,cue:200,winner:180,dealer:300,highlight:300},MOVE='cubic-bezier(.77,0,.175,1)';
  let enhanced=new URLSearchParams(location.search).get('variant')!=='current',epoch=0,timers=[],animations=[],nodes=[],abortShuffle=null;
  const reduced=()=>matchMedia('(prefers-reduced-motion: reduce)').matches||(!document.getElementById('simulation')?.hidden&&document.getElementById('reduce')?.checked);
  const on=()=>enhanced&&!reduced();
@@ -47,16 +47,32 @@ const FX=(()=>{
  },{capture:true,passive:false});
  window.addEventListener('blur',unlockDealing);
  document.addEventListener('visibilitychange',()=>{if(document.hidden)unlockDealing();});
+ async function moveDealer(previous,next){
+  if(previous===next||!on())return true;
+  const seats=document.querySelectorAll('.mp-oval .mp-seat'),marker=seats[next]?.querySelector('.dealer');
+  if(!marker||!seats[previous])return true;
+  const from=seats[previous].getBoundingClientRect(),to=marker.getBoundingClientRect();
+  const motion=animate(marker,[{transform:`translate(${from.right-to.right}px,${from.top-to.top}px)`},{transform:'translate(0,0)'}],{duration:TIME.dealer,easing:MOVE});
+  try{await motion.finished;return true;}catch{return false;}
+ }
+ const highlighted=new Set();
+ function highlightResults(){
+  for(const el of document.querySelectorAll('[data-winning-hand]')){
+   const key=el.dataset.winningHand;if(highlighted.has(key))continue;
+   highlighted.add(key);
+   if(el.closest('details')?.open&&on())animate(el,[{opacity:.55},{opacity:1}],{duration:TIME.highlight});
+  }
+ }
  function install(){
  const bar=document.createElement('details');bar.id='motion-lab';bar.open=true;bar.innerHTML='<summary>Animation comparison</summary><div><button id="fx-switch"></button><button id="fx-preview">Preview shuffle</button></div><p id="fx-state"></p><p>Practice games reset on reload. Collapse this bar to play.</p>';document.body.append(bar);
  const refresh=()=>{document.body.dataset.effects=String(enhanced);bar.querySelector('#fx-switch').textContent=enhanced?'Added effects → Current':'Current → Added effects';bar.querySelector('#fx-state').textContent=(enhanced?'Added effects':'Current')+' · original card travel · '+(reduced()?'reduced motion':'motion on')+' · no persistent saves';};
  bar.querySelector('#fx-switch').onclick=()=>{clear();enhanced=!enhanced;const u=new URL(location);u.searchParams.set('variant',enhanced?'effects':'current');history.replaceState(null,'',u);refresh();};bar.querySelector('#fx-preview').onclick=()=>shuffle();refresh();
- const seen=new Map();new MutationObserver(()=>{if(!on())return;for(const [key,selector] of [['mp-actor','.mp-oval .acting'],['sim-actor','#players .acting'],['mp-street','#mp-community .board-stage'],['sim-street','#stage .board-stage']]){const el=document.querySelector(selector),value=key.includes('actor')?el?.querySelector('strong,.seat-name')?.textContent:el?.textContent;if(seen.get(key)!==value){const old=seen.get(key);seen.set(key,value);if(old&&value)later(()=>cue(document.querySelector(selector)),key.includes('actor')?TIME.chip:0);}}}).observe(document.body,{childList:true,subtree:true});
+ const seen=new Map();new MutationObserver(()=>{highlightResults();if(!on())return;for(const [key,selector] of [['mp-actor','.mp-oval .acting'],['sim-actor','#players .acting'],['mp-street','#mp-community .board-stage'],['sim-street','#stage .board-stage']]){const el=document.querySelector(selector),value=key.includes('actor')?el?.querySelector('strong,.seat-name')?.textContent:el?.textContent;if(seen.get(key)!==value){const old=seen.get(key);seen.set(key,value);if(old&&value)later(()=>cue(document.querySelector(selector)),key.includes('actor')?TIME.chip:0);}}}).observe(document.body,{childList:true,subtree:true});
  matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change',()=>{clear();refresh();});
  }
  // Any new user action cancels obsolete decoration, never game state or card travel.
  document.addEventListener('click',()=>{if(!abortShuffle)clear();},true);
  window.addEventListener('blur',clear);document.addEventListener('visibilitychange',()=>{if(document.hidden)clear();});
  document.addEventListener('DOMContentLoaded',install);
- return {get enhanced(){return enhanced;},clear,shuffle,winner,snapshot,contribution,lockDealing,unlockDealing};
+ return {get enhanced(){return enhanced;},clear,shuffle,winner,snapshot,contribution,moveDealer,resetHighlights:()=>highlighted.clear(),lockDealing,unlockDealing};
 })();

@@ -6,3 +6,8 @@ html.cards-dealing,html.cards-dealing body{overflow:hidden!important;overscroll-
 .cards-dealing #game-scroll,.cards-dealing .turn-box{overflow:hidden!important;touch-action:none}
 .dealing-shield{position:fixed;inset:0;z-index:2000;touch-action:none;cursor:wait;display:flex;align-items:flex-end;justify-content:center;padding:12px 18px max(12px,env(safe-area-inset-bottom));color:#fff;font:600 12px/1.4 var(--font-ui);background:linear-gradient(transparent calc(100% - 52px),#173c32 calc(100% - 52px));text-align:center}
 .cards-dealing #motion-lab{visibility:hidden}
+
+body[data-effects="true"] [data-winning-hand] .card{outline:1px solid #b18a35;outline-offset:2px}
+body[data-effects="true"] [data-winning-hand] .card.defining{outline:3px solid #996b17;outline-offset:2px}
+body[data-effects="true"] .winning-caption{font-size:12px;color:#795410;font-weight:700}
+body[data-effects="false"] .winning-caption{display:none}

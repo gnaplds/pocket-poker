@@ -31,3 +31,9 @@ No ADR or glossary changes: these are reversible presentation decisions, not new
 ## Dealing input lock
 
 During each dealing sequence, a transparent input shield blocks taps, wheel/touch scrolling, and ordinary keyboard input. The table stays visible; the comparison bar is hidden. Controls return at the street pause. Nested single-card work cannot unlock an ongoing sequence, and interruption clears the lock. Browser verified the locked state during a four-player hole-card deal and attempted scrolling. Self-check covers nested locks, previous inert-state restoration, and stale completion after interruption. Physical touchscreen validation remains pending.
+
+## Dealer and winning-card follow-up
+
+User approved: a 300 ms dealer-marker move before the next hand's shuffle, only if its seat changes; best-five emphasis for each board's pot winners, including ties and side-pot eligibility; thicker borders for category-defining cards and labels for kickers; one 300 ms pulse followed by static borders. Fold wins keep private cards concealed. Simulation's dealer remains fixed. Closed result sections stay closed across redraws. Reduced motion places the marker instantly and keeps static card emphasis.
+
+Self-check also verifies three-of-a-kind defining cards versus kickers, tie recognition, no pre-result highlighting, and unchanged-dealer no-op. The updated page opens in browser. Full visual validation of the dealer transition, tied/two-board results, and physical phone performance is still pending. Showdown flips and pot-collection effects remain deferred. Nothing is pushed or deployed.

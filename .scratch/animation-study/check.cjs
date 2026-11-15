@@ -19,5 +19,13 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
  const stale=context.fx.lockDealing();context.fx.unlockDealing();const current=context.fx.lockDealing();stale();assert(classes.has('cards-dealing'),'stale completion cannot unlock a new deal');current();assert.equal(removed,3);
  const html=fs.readFileSync(__dirname+'/motion-prototype.html','utf8');assert(!/localStorage\.|sessionStorage\./.test(html));
  for(const m of html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g))new vm.Script(m[1]);
+ const engine=vm.createContext({});vm.runInContext(html.match(/<script id="poker-engine">([\s\S]*?)<\/script>/)[1],engine);
+ engine.safe=s=>s;engine.card=(c,classes)=>`<span class="${classes}">${c}</span>`;
+ vm.runInContext(html.slice(html.indexOf('function winningCards('),html.indexOf('function resultsHTML()')),engine);
+ const cards=engine.winningCards(['7s','7h'],['7d','Kc','2s'],'test');
+ assert.equal((cards.match(/small-card defining/g)||[]).length,3);assert.equal((cards.match(/Kicker/g)||[]).length,2);
+ engine.activeResult=()=>({winners:[0,1]});assert(engine.winsBoard({stage:'complete',boards:[[]]},0,0));assert(engine.winsBoard({stage:'complete',boards:[[]]},1,0));
+ assert(!engine.winsBoard({stage:'flop',boards:[[]]},0,0));
+ await context.fx.moveDealer(0,0); // No motion or DOM lookup when the dealer stays put.
  console.log('Passed: cancelled winner, reduced-motion feedback, no storage access, script syntax, nested dealing locks and cleanup.');
 })();
