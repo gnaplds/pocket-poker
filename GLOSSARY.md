@@ -17,6 +17,10 @@ _Avoid_: Online multiplayer
 **Game session**:
 A series of hands played by the same group, with each player's chips carrying from one hand to the next.
 
+**Rematch**:
+A new game session for the same full group, including players eliminated from the previous game. Names and settings carry over, all stacks reset to the starting amount, and a new first dealer is chosen.
+_Avoid_: Next hand, replay same deck
+
 **Seat**:
 A player's fixed place in the clockwise order around the table. A seat stays in place while its position relative to the button changes.
 

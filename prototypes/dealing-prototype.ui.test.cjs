@@ -15,7 +15,7 @@ function page(saved=null,workerAvailable=true,saveFails=false){
       this.markup=value;
       this.children=[];
       for(const tag of value.matchAll(/<[^>]+(?:\bid="[^"]+"|\bdata-[\w-]+="[^"]*")[^>]*>/g)){
-        const el=new Element();el.disabled=/\sdisabled(?:\s|>)/.test(tag[0]);el.value=tag[0].match(/\bvalue="([^"]*)"/)?.[1]||'';
+        const el=new Element();el.hidden=/\shidden(?:\s|>)/.test(tag[0]);el.disabled=/\sdisabled(?:\s|>)/.test(tag[0]);el.value=tag[0].match(/\bvalue="([^"]*)"/)?.[1]||'';
         for(const [,key,val] of tag[0].matchAll(/\bdata-([\w-]+)="([^"]*)"/g)){el.dataset[key]=val;el.dataset[key.replace(/-([a-z])/g,(_,c)=>c.toUpperCase())]=val;}
         const id=tag[0].match(/\bid="([^"]+)"/)?.[1];if(id)ids.set(id,el);
         this.children.push(el);
@@ -81,7 +81,7 @@ function savedFlop(reveal='hold',guidance=true,situation='flop',cards='6h 2c 7h 
 
 test('whole-chip slider updates one combined action without committing chips and resets on handoff',()=>{
  const p=page(savedFlop('tap')),{ids}=p,app=ids.get('pocket-app');
- app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();ids.get('resume-game').onclick();
+ ids.get('resume-game').onclick();
  app.querySelectorAll('[data-command]').find(e=>e.dataset.command==='ready').onclick();
  const before=p.saved,slider=ids.get('mp-amount'),button=ids.get('raise-action');
  assert.match(app.innerHTML,/type="range" min="2" max="18" step="1"/);
@@ -98,10 +98,10 @@ test('whole-chip slider updates one combined action without committing chips and
  assert.equal(ids.get('mp-amount').value,'4');assert.equal(ids.get('raise-action').textContent,'Raise to 4');
 });
 
-test('every betting action requires confirmation, conceals guidance, and commits only once',()=>{
- for(const action of ['fold','call','raise','all','check']){
+test('chip and fold actions require confirmation, conceals guidance, and commits only once',()=>{
+ for(const action of ['fold','call','raise','all']){
   const p=page(savedFlop('tap',true,action==='call'?'call':'flop')),{ids}=p,app=ids.get('pocket-app');
-  app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();ids.get('resume-game').onclick();
+  ids.get('resume-game').onclick();
   app.querySelectorAll('[data-command]').find(e=>e.dataset.command==='ready').onclick();
   ids.get('peek-button').onclick();ids.get('mp-amount').value=action==='all'?'18':'3';ids.get('mp-amount').oninput();
   const before=JSON.parse(p.saved).moves.length;
@@ -118,7 +118,7 @@ test('every betting action requires confirmation, conceals guidance, and commits
   assert.doesNotMatch(app.innerHTML,/You have/);
  }
  const p=page(savedFlop('tap')),{ids}=p,app=ids.get('pocket-app');
- app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();ids.get('resume-game').onclick();
+ ids.get('resume-game').onclick();
  app.querySelectorAll('[data-command]').find(e=>e.dataset.command==='ready').onclick();
  app.querySelectorAll('[data-bet]').find(e=>e.dataset.bet==='fold').onclick();
  const before=JSON.parse(p.saved).moves.length;
@@ -129,7 +129,7 @@ test('every betting action requires confirmation, conceals guidance, and commits
 
 test('showdown groups each player in a collapsible section and celebrates a hand once',()=>{
  const p=page(savedFlop('hold',true,'river')),{ids}=p,app=ids.get('pocket-app');
- app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();ids.get('resume-game').onclick();
+ ids.get('resume-game').onclick();
  app.querySelectorAll('[data-command]').find(e=>e.dataset.command==='ready').onclick();
  app.querySelectorAll('[data-bet]').find(e=>e.dataset.bet==='check').onclick();
  ids.get('action-confirm').onclick();
@@ -148,7 +148,8 @@ test('Peek events show and remove all private guidance without replacing the hel
   const p=page(savedFlop()),{ids}=p,app=ids.get('pocket-app');
   const nav=()=>app.querySelectorAll('[data-nav]').find(el=>el.dataset.nav==='modes').onclick();
   const command=type=>app.querySelectorAll('[data-command]').find(el=>el.dataset.command===type).onclick();
-  nav();ids.get('resume-game').onclick();command('ready');
+  ids.get('resume-game').onclick();command('ready');
+  ids.get('details-toggle').onclick();
   const button=ids.get('peek-button');
   if(hide==='onkeyup')button.onkeydown({key:' ',preventDefault(){}});
   else button.onpointerdown({button:0,pointerId:1,preventDefault(){}});
@@ -166,8 +167,9 @@ test('Peek events show and remove all private guidance without replacing the hel
  }
  for(const enabled of [true,false]){
   const {ids}=page(savedFlop('tap',enabled)),app=ids.get('pocket-app');
-  app.querySelectorAll('[data-nav]').find(el=>el.dataset.nav==='modes').onclick();ids.get('resume-game').onclick();
+  ids.get('resume-game').onclick();
   app.querySelectorAll('[data-command]').find(el=>el.dataset.command==='ready').onclick();
+  if(enabled)ids.get('details-toggle').onclick();
   ids.get('peek-button').onclick();
   assert.equal(ids.get('private-guidance').innerHTML.includes('Flush draw'),enabled);
   ids.get('peek-button').onclick();assert.equal(ids.get('private-guidance').innerHTML,'');
@@ -203,14 +205,14 @@ test('Simulation walkthroughs remain wired and leaving during card flight comple
 
 test('all-in seats show public cards through voting and interruptions without public guidance',()=>{
  const p=page(savedFlop('tap',true,'allin')),{ids}=p,app=ids.get('pocket-app');
- app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();ids.get('resume-game').onclick();
+ ids.get('resume-game').onclick();
  const table=()=>app.innerHTML.match(/<section class="mp-oval[\s\S]*?<\/section>/)[0];
  assert.match(table(),/mp-hole-1-0[^>]+aria-label="6 of hearts"/);
  assert.match(table(),/mp-hole-0-0[^>]+aria-label="2 of clubs"/);
  assert.match(app.innerHTML,/Hole cards are public/);
  assert.doesNotMatch(app.innerHTML,/All hole cards are hidden|You have|receives/);
  app.querySelectorAll('[data-command]').find(e=>e.dataset.command==='ready').onclick();
- ids.get('peek-button').onclick();assert.match(ids.get('private-guidance').innerHTML,/You have/);
+ ids.get('details-toggle').onclick();ids.get('peek-button').onclick();assert.match(ids.get('private-guidance').innerHTML,/You have/);
  ids.get('peek-button').onclick();assert.equal(ids.get('private-guidance').innerHTML,'');
  assert.equal(ids.get('peek-button').textContent,'Show guidance');
  p.windowEvents.blur.forEach(fn=>fn());
@@ -220,7 +222,7 @@ test('all-in seats show public cards through voting and interruptions without pu
 
 test('table action labels and colors change only after confirmation',()=>{
  const p=page(savedFlop('tap',true,'call')),{ids}=p,app=ids.get('pocket-app');
- app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();ids.get('resume-game').onclick();
+ ids.get('resume-game').onclick();
  assert.match(app.innerHTML,/mp-seat action-blue/);assert.match(app.innerHTML,/Raise to 6|Bet 6/);
  app.querySelectorAll('[data-command]').find(e=>e.dataset.command==='ready').onclick();
  app.querySelectorAll('[data-bet]').find(e=>e.dataset.bet==='call').onclick();
@@ -237,7 +239,7 @@ test('short stacks show a single all-in raise or only a legal call',()=>{
   raw.seed.stacks=[3,37];
   if(!facingBet)raw.moves.push({type:'bet',action:'check'});
   const p=page(JSON.stringify(raw)),{ids}=p,app=ids.get('pocket-app');
-  app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();ids.get('resume-game').onclick();
+  ids.get('resume-game').onclick();
   app.querySelectorAll('[data-command]').find(e=>e.dataset.command==='ready').onclick();
   assert.match(app.innerHTML,/type="range" min="1" max="1" step="1" value="1" disabled/);
   if(facingBet){
@@ -256,7 +258,7 @@ test('short stacks show a single all-in raise or only a legal call',()=>{
 test('all-in UI updates categories, board results and street history, then shows one dismissible winner popup',async()=>{
  const p=page(savedFlop('tap',false,'allin')),{ids}=p,app=ids.get('pocket-app');
  const cmd=type=>app.querySelectorAll('[data-command]').find(e=>e.dataset.command===type).onclick();
- app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();ids.get('resume-game').onclick();
+ ids.get('resume-game').onclick();
  assert.match(app.innerHTML,/class="seat-rank">High card/);
  for(let i=0;i<2;i++){cmd('ready');app.querySelectorAll('[data-vote]').find(e=>e.dataset.vote==='yes').onclick();}
  assert.match(app.innerHTML,/A: High card/);assert.match(app.innerHTML,/B: High card/);
@@ -287,26 +289,26 @@ test('all-in UI updates categories, board results and street history, then shows
  assert.doesNotMatch(app.innerHTML,/<details class="(?:public-history|history-round)"/);
  assert.match(app.innerHTML,/class="mp-seat seat-winner /);
  assert.match(ids.get('winner-summary').innerHTML,/receives \d+ chips/);
- const completed=p.saved;ids.get('winner-continue').onclick();assert.equal(ids.get('winner-popup').open,false);assert.equal(p.saved,completed);
+ const completed=p.saved;ids.get('winner-review').onclick();assert.equal(ids.get('winner-popup').open,false);assert.equal(p.saved,completed);
  p.windowEvents.blur.forEach(fn=>fn());assert.equal(ids.get('winner-popup').open,false);
 });
 
 test('fold-win popup preserves private cards and completed-hand resume does not replay it',()=>{
  const p=page(savedFlop()),{ids}=p,app=ids.get('pocket-app');
- app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();ids.get('resume-game').onclick();
+ ids.get('resume-game').onclick();
  app.querySelectorAll('[data-command]').find(e=>e.dataset.command==='ready').onclick();
  app.querySelectorAll('[data-bet]').find(e=>e.dataset.bet==='fold').onclick();ids.get('action-confirm').onclick();
  assert.equal(ids.get('winner-popup').open,true);assert.match(ids.get('winner-summary').innerHTML,/Everyone else folded/);
  assert.doesNotMatch(app.innerHTML,/class="seat-rank"|id="board-verdict|class="player-result"/);
- ids.get('winner-continue').onclick();
+ ids.get('winner-review').onclick();
  const resumed=page(p.saved),home=resumed.ids.get('pocket-app');
- home.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();resumed.ids.get('resume-game').onclick();
+ resumed.ids.get('resume-game').onclick();
  assert.notEqual(resumed.ids.get('winner-popup').open,true);assert.match(home.innerHTML,/Hand complete/);
 });
 
 test('a tied normal hand keeps results private until Showdown and announces both recipients',()=>{
  const p=page(savedFlop('hold',false,'river','2d 3d 4h 5h 6d Ac Kc Qc 7d Jc 8d Tc')),{ids}=p,app=ids.get('pocket-app');
- app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();ids.get('resume-game').onclick();
+ ids.get('resume-game').onclick();
  app.querySelectorAll('[data-command]').find(e=>e.dataset.command==='ready').onclick();
  app.querySelectorAll('[data-bet]').find(e=>e.dataset.bet==='check').onclick();ids.get('action-confirm').onclick();
  assert.doesNotMatch(app.innerHTML,/id="board-verdict|class="seat-rank"/);assert.notEqual(ids.get('winner-popup').open,true);
@@ -319,7 +321,6 @@ test('a tied normal hand keeps results private until Showdown and announces both
 
 test('setup offers eight named seats and preserves names when changing table size',()=>{
  const p=page(),app=p.ids.get('pocket-app');
- app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();
  app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='setup').onclick();
  assert.match(app.innerHTML,/>8<\/option>/);
  p.ids.get('mp-name-0').value='Robin';
@@ -493,7 +494,7 @@ test('per-card study controls finish the current partial flop before offering th
 
 test('Simulation and Pass & Play share community board labels and street presentation',async()=>{
  const p=page(savedFlop()),{ids}=p,app=ids.get('pocket-app');
- app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();ids.get('resume-game').onclick();
+ ids.get('resume-game').onclick();
  assert.match(app.innerHTML,/class="board-stage">Flop/);
  assert.match(app.innerHTML,/class="board-meta">One board/);
  ids.get('save-leave').onclick();ids.get('home-save').onclick();app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='simulation').onclick();
@@ -505,17 +506,17 @@ test('Simulation and Pass & Play share community board labels and street present
 
 test('multiplayer equity uses public hands only and ignores stale results after leaving',()=>{
  const p=page(savedFlop('hold',true,'allin')),{ids,workers}=p,app=ids.get('pocket-app');
- app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();ids.get('resume-game').onclick();
+ ids.get('resume-game').onclick();
  const w=workers.at(-1);assert.ok(w);assert.deepEqual(Array.from(w.request.visible.burns),[]);assert.equal(w.request.visible.hands.length,2);
  w.onmessage({data:{id:w.request.id,result:{board:0,seats:[0,1],exact:true,done:true,players:[{equity:.75},{equity:.25}]}}});
  assert.match(ids.get('mp-equity-0').innerHTML,/75.0%/);
  ids.get('save-leave').onclick();ids.get('home-save').onclick();assert.equal(w.terminated,true);
- const normal=page(savedFlop()),a=normal.ids.get('pocket-app');a.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();normal.ids.get('resume-game').onclick();assert.equal(normal.workers.length,0);
+ const normal=page(savedFlop()),a=normal.ids.get('pocket-app');normal.ids.get('resume-game').onclick();assert.equal(normal.workers.length,0);
 });
 
 test('Save & Leave confirms before saving and reloading home',()=>{
  const p=page(savedFlop()),{ids}=p,app=ids.get('pocket-app');
- app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();ids.get('resume-game').onclick();
+ ids.get('resume-game').onclick();
  ids.get('save-leave').onclick();assert.equal(ids.get('home-confirm').open,true);assert.equal(p.reloads,0);
  ids.get('home-cancel').onclick();assert.equal(ids.get('home-confirm').open,false);
  ids.get('save-leave').onclick();ids.get('home-save').onclick();assert.equal(p.reloads,1);assert.ok(p.saved);
@@ -523,18 +524,115 @@ test('Save & Leave confirms before saving and reloading home',()=>{
 
  test('home reload is blocked when saving fails',()=>{
  const p=page(savedFlop(),true,true),{ids}=p,app=ids.get('pocket-app');
- app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();ids.get('resume-game').onclick();
+ ids.get('resume-game').onclick();
  ids.get('save-leave').onclick();ids.get('home-save').onclick();assert.equal(p.reloads,0);
  });
 
 test('mode, setup and Equity headers have static branding and a Back action',()=>{
  for(const mode of ['modes','setup','equity']){
   const p=page(),{ids}=p,app=ids.get('pocket-app');
-  app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();
+  if(mode!=='setup')app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();
   if(mode!=='modes')app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav===mode).onclick();
   assert.match(app.innerHTML,/pocket-logo header-logo/);
   assert.match(app.innerHTML,/>Back<\/button>/);
   assert.doesNotMatch(app.innerHTML,/<button[^>]*class="brand-small/);
-  app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav===(mode==='modes'?'home':'modes')).onclick();assert.notEqual(ids.get('home-confirm').open,true);assert.equal(p.reloads,0);
+  app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav===(mode==='equity'?'modes':'home')).onclick();assert.notEqual(ids.get('home-confirm').open,true);assert.equal(p.reloads,0);
  }
+});
+
+
+test('Opening leads directly to play or resume, with Study separate',()=>{
+ const fresh=page(),app=fresh.ids.get('pocket-app');
+ assert.match(app.innerHTML,/>Play together</);assert.match(app.innerHTML,/>Study</);
+ app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='setup').onclick();
+ assert.match(app.innerHTML,/Your table/);
+ const p=page(savedFlop()),home=p.ids.get('pocket-app'),before=p.saved;
+ assert.match(home.innerHTML,/>Continue game</);assert.match(home.innerHTML,/>New game</);
+ home.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='setup').onclick();
+ assert.equal(p.saved,before);
+ p.ids.get('mp-reveal').value='hold';p.ids.get('mp-guidance').value='on';
+ p.ids.get('match-setup').onsubmit({preventDefault(){}});
+ assert.equal(p.ids.get('replace-game').open,true);
+ p.ids.get('replace-cancel').onclick();assert.equal(p.saved,before);
+});
+
+test('Check acts directly once and hides private cards and expanded guidance',()=>{
+ const p=page(savedFlop('tap')),{ids}=p,app=ids.get('pocket-app');ids.get('resume-game').onclick();
+ app.querySelectorAll('[data-command]').find(e=>e.dataset.command==='ready').onclick();
+ assert.equal(ids.get('private-guidance').hidden,true);
+ ids.get('details-toggle').onclick();ids.get('peek-button').onclick();
+ assert.match(ids.get('private-guidance').innerHTML,/You have/);
+ const before=JSON.parse(p.saved).moves.length,check=app.querySelectorAll('[data-bet]').find(e=>e.dataset.bet==='check');
+ check.onclick();check.onclick();
+ assert.notEqual(ids.get('confirm-action').open,true);
+ assert.equal(JSON.parse(p.saved).moves.length,before+1);
+ assert.match(app.innerHTML,/Pass to/);assert.doesNotMatch(app.innerHTML,/You have/);
+ app.querySelectorAll('[data-command]').find(e=>e.dataset.command==='ready').onclick();
+ assert.equal(ids.get('private-guidance').hidden,true);assert.equal(ids.get('private-guidance').innerHTML,'');
+});
+
+test('Next hand from winner dialog starts exactly one hand and retains stacks',()=>{
+ const p=page(savedFlop()),{ids}=p,app=ids.get('pocket-app');ids.get('resume-game').onclick();
+ app.querySelectorAll('[data-command]').find(e=>e.dataset.command==='ready').onclick();
+ app.querySelectorAll('[data-bet]').find(e=>e.dataset.bet==='fold').onclick();ids.get('action-confirm').onclick();
+ const before=JSON.parse(p.saved);assert.equal(ids.get('winner-continue').textContent,'Next hand');
+ ids.get('winner-continue').onclick();ids.get('winner-continue').onclick();
+ const after=JSON.parse(p.saved);assert.equal(after.hand,before.hand+1);
+ assert.equal(after.seed.stacks.reduce((a,b)=>a+b),40);
+ assert.notDeepEqual(after.seed.stacks,[20,20]);assert.equal(ids.get('winner-popup').open,false);
+});
+
+function finishedGroup(){
+ const html=fs.readFileSync(__dirname+'/dealing-prototype.html','utf8'),ctx=vm.createContext({});
+ for(const id of ['poker-engine','poker-session'])vm.runInContext(html.match(new RegExp('<script id="'+id+'">([\\s\\S]*?)</script>'))[1],ctx);
+ const M=ctx.Match,P=ctx.Poker,prefix='2c As 3d Ah 5c Jc 9s 7h 6c 4d 8c Qs'.split(' '),deck=[...prefix,...P.fullDeck().filter(c=>!prefix.includes(c))];
+ let s=M.start(['Alex','Blair','Casey'],deck,1,'tap',false);
+ s.seed={deck,stacks:[0,30,30],button:1,sb:1,bb:2};s.game=P.create(3,deck,{...s.seed,manualShowdown:true});
+ for(let i=0;i<100&&M.view(s).phase!=='result';i++){
+  const v=M.view(s);let c;
+  if(v.phase==='turn')c=v.voting?{type:'vote',twice:false}:v.legal.canRaise?{type:'bet',action:'raise',amount:v.legal.max}:{type:'bet',action:v.legal.owed?'call':'check'};
+  else c={type:({dealing:'deal',handoff:'ready',public:'continue',showdown:'showdown'})[v.phase]};
+  s=M.command(s,c);
+ }
+ assert.notEqual(M.view(s).winner,null);return M.save(s);
+}
+
+test('Rematch confirms full-group reset; cancel and duplicate confirm preserve the session',()=>{
+ const original=finishedGroup(),p=page(original),{ids}=p,app=ids.get('pocket-app');ids.get('resume-game').onclick();
+ assert.match(app.innerHTML,/Rematch/);
+ app.querySelectorAll('[data-rematch]').at(0).onclick();
+ assert.equal(ids.get('rematch-dialog').open,true);assert.match(ids.get('rematch-summary').textContent,/3 players.*20 chips/);
+ ids.get('rematch-cancel').onclick();assert.equal(p.saved,original);
+ app.querySelectorAll('[data-rematch]').at(0).onclick();ids.get('rematch-confirm').onclick();
+ const once=p.saved;ids.get('rematch-confirm').onclick();assert.equal(p.saved,once);
+ const next=JSON.parse(p.saved);assert.deepEqual(next.names,['Alex','Blair','Casey']);assert.deepEqual(next.seed.stacks,[20,20,20]);
+ assert.equal(next.hand,1);assert.equal(next.reveal,'tap');assert.equal(next.guidance,false);
+ assert.ok(next.seed.button>=0&&next.seed.button<3);assert.notDeepEqual(next.seed.deck,JSON.parse(original).seed.deck);
+});
+
+test('Hand details needs Peek, clears content on collapse, and resets on a private handoff',()=>{
+ const p=page(savedFlop('tap')),{ids}=p,app=ids.get('pocket-app');ids.get('resume-game').onclick();
+ const command=type=>app.querySelectorAll('[data-command]').find(e=>e.dataset.command===type).onclick();
+ command('ready');ids.get('details-toggle').onclick();assert.equal(ids.get('private-guidance').innerHTML,'');
+ ids.get('peek-button').onclick();assert.match(ids.get('private-guidance').innerHTML,/You have/);
+ ids.get('details-toggle').onclick();assert.equal(ids.get('private-guidance').hidden,true);assert.equal(ids.get('private-guidance').innerHTML,'');
+ ids.get('details-toggle').onclick();assert.match(ids.get('private-guidance').innerHTML,/You have/);
+ command('hide');assert.doesNotMatch(app.innerHTML,/You have/);command('ready');
+ assert.equal(ids.get('private-guidance').hidden,true);assert.equal(ids.get('private-guidance').innerHTML,'');
+});
+
+test('eight long-named seats use the same private controls and finish a fold hand once',()=>{
+ const raw=JSON.parse(savedFlop());raw.names=Array.from({length:8},(_,i)=>'Long player name '+(i+1));
+ raw.seed={...raw.seed,stacks:Array(8).fill(20),button:0,sb:1,bb:2};raw.moves=Array.from({length:16},()=>({type:'deal'}));raw.phase='public';raw.runChoice=null;raw.voters=null;
+ const p=page(JSON.stringify(raw)),{ids}=p,app=ids.get('pocket-app');ids.get('resume-game').onclick();
+ const command=type=>app.querySelectorAll('[data-command]').find(e=>e.dataset.command===type).onclick();
+ command('continue');
+ for(let i=0;i<7;i++){
+  command('ready');assert.equal(ids.get('private-guidance').innerHTML,'');
+  app.querySelectorAll('[data-bet]').find(e=>e.dataset.bet==='fold').onclick();ids.get('action-confirm').onclick();
+ }
+ assert.equal(ids.get('winner-popup').open,true);assert.equal(ids.get('winner-continue').textContent,'Next hand');
+ assert.equal((app.innerHTML.match(/aria-label="Seat \d:/g)||[]).length,8);
+ assert.doesNotMatch(app.innerHTML,/public-holes|You have/);
+ const before=p.saved;ids.get('winner-review').onclick();assert.equal(p.saved,before);
 });

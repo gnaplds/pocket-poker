@@ -1,6 +1,6 @@
-# Pocket Poker prototype
+# Pocket Poker play guide
 
-Open [dealing-prototype.html](dealing-prototype.html) in a browser. It is one self-contained file, with no dependencies or outgoing network requests. It now includes the accepted Simulation and the approved Pass & Play extension. Android packaging is deferred. This local branch adds Equity mode and refreshes Simulation; these changes have not been published.
+Open [dealing-prototype.html](dealing-prototype.html) in a browser. The app uses plain HTML/CSS/JavaScript and a locally hosted Inter font, with no framework or external runtime requests. The website redesign is on `codex/web-sans-typography`, separate from `main` and the live deployment. The native Godot Android app stays on a separate branch.
 
 For a stable browser origin and local saves, run from the repository root:
 
@@ -12,19 +12,19 @@ Then open `http://127.0.0.1:8765/dealing-prototype.html` on that computer. A pho
 
 ## Pass & Play
 
-1. Choose **Play → Pass & Play**. Enter 2–8 names in clockwise order, starting at the bottom seat. Choose hold-to-peek or the optional tap reveal method. Hand guidance defaults to On for everyone; turn it off in setup for an unassisted game.
+1. Choose **Play together** (or **New game** when a save exists). Enter 2–8 names in clockwise order, starting at the bottom seat. Choose hold-to-peek or the optional tap reveal method. Hand guidance defaults to On for everyone; turn it off in setup for an unassisted game.
 2. Each player starts with 20 play chips. Blinds are 1/2, and the first button is random. The app shuffles and deals hole cards face down.
-3. At **Pass to…**, hand the phone to that player. **I'm ready** leaves the cards face down. Hold Peek to view them, or use Reveal/Hide in tap mode. With guidance on, Peek also explains your current hand, highlights the cards that make it, and shows one-card straight/flush draws with their missing ranks or suit. Everything private hides together.
-4. Check, call, bet/raise, go all-in, or fold. The Min–Max slider moves one chip at a time. Its amount includes chips already committed on the current street. The wide action says All-in and turns gold at Max. Every action—including Check—opens a confirmation dialog with the exact chip amount or action. Cards and guidance hide immediately; Go back changes nothing, while Confirm commits once. Leaving the app cancels a pending confirmation and requires a fresh handoff.
+3. At **Pass to…**, hand the phone to that player. **I'm ready** leaves the cards face down. Hold Peek to view them, or use Reveal/Hide in tap mode. With guidance on, expand **Hand details** before peeking to read the explanation. Peek explains your current hand, highlights the cards that make it, and shows one-card straight/flush draws with their missing ranks or suit. Everything private hides together.
+4. Check, call, bet/raise, go all-in, or fold. The Min–Max slider moves one chip at a time. Its amount includes chips already committed on the current street. The wide action says All-in and turns gold at Max. **Check acts immediately.** All other betting actions open a confirmation dialog with the exact chip amount or action. Cards and guidance hide immediately; Go back changes nothing, while Confirm commits once. Leaving the app cancels a pending confirmation and requires a fresh handoff.
 5. After betting, the table pauses before dealing. When everyone is ready, tap **Deal the flop**, **Deal the turn**, or **Deal the river**. Cards then move one at a time at 850 ms each. Pause on the shared board, then use **Next turn**. Once all owed decisions finish and no further betting is possible against all-in opponents, non-folded hole cards become public at their fixed seats. This includes a covering player with chips left, but excludes situations where other players can still bet a side pot. Each remaining player gets a named runout vote; public cards remain visible, while Peek guidance stays private. One Run once ends the vote; unanimous Run twice uses two boards and applies to every pot. After voting, there is another shared readiness pause before dealing.
-6. For normal private hands, tap **Showdown** after river betting when everyone is ready. Public all-in hands show each player’s current category at completed streets and the winners beside each completed board. They finish automatically after the last required river, paying all pots together; there is no all-in Showdown pause. At showdown, see non-folded hands, best-five rankings, main/side-pot winners, ties, and returned excess. Guidance adds made-hand explanations for each revealed hand and board. Folded cards remain private. A fold win pays immediately and reveals no hands. Each revealed player has an independently collapsible result section containing their board results. An animated winner popup lists all chip recipients and amounts once per completed hand, including ties and fold wins. Continue closes it without starting the next hand. Confetti accompanies it. Reduced motion keeps the popup static and disables confetti. Completed-hand recovery does not replay the popup.
-7. **Next hand** carries stacks forward and advances tournament-style blinds. Eliminated seats stay in place. The game ends when one player has all the chips.
+6. For normal private hands, tap **Showdown** after river betting when everyone is ready. Public all-in hands show each player’s current category at completed streets and the winners beside each completed board. They finish automatically after the last required river, paying all pots together; there is no all-in Showdown pause. At showdown, see non-folded hands, best-five rankings, main/side-pot winners, ties, and returned excess. Guidance adds made-hand explanations for each revealed hand and board. Folded cards remain private. A fold win pays immediately and reveals no hands. Each revealed player has an independently collapsible result section containing their board results. An animated winner popup lists all chip recipients and amounts once per completed hand, including ties and fold wins. **Next hand** starts the next deal; **Review hand** closes it without changing the result. A short confetti burst accompanies it. Reduced motion keeps the popup static and disables confetti. Completed-hand recovery does not replay the popup.
+7. **Next hand** carries stacks forward and advances tournament-style blinds. Eliminated seats stay in place. The game ends when one player has all the chips. **Rematch** then offers a reset summary before restoring all original players, including eliminated seats, to 20 chips. Names and settings stay the same; the first dealer and deck are new. Cancelling keeps the finished game.
 
 Betting history is always visible in Preflop, Flop, Turn, and River sections. Blinds appear under Preflop. Reached streets with no actions say No betting; separate runout streets have A/B labels.
 
 Seats show the last confirmed decision: blue Bet/Raise, green Call while it matches the current bet, faded red Fold, gold All-in, and neutral Check. A later raise removes earlier callers’ green until they match again. Ordinary action labels/colors reset as the next street starts; Fold and All-in remain. A separate purple outline marks the acting player.
 
-There is one local saved game. **Save & leave** keeps it; **Resume game** restores it with private cards hidden; cards already exposed by an all-in reveal remain public. Normal pending Showdown remains unpaid, and completed older saves remain completed. Old public all-in hands waiting for Showdown now settle automatically on recovery, once only. Starting another game asks before replacing the save. Clearing browser storage removes it; nothing is backed up to a server. Use one active tab for the game.
+There is one local saved game. **Save & leave** keeps it; **Continue game** on Opening restores it with private cards hidden; cards already exposed by an all-in reveal remain public. Normal pending Showdown remains unpaid, and completed older saves remain completed. Old public all-in hands waiting for Showdown now settle automatically on recovery, once only. Starting another game asks before replacing an unfinished or unreadable save; opening setup alone does not replace it. Clearing browser storage removes it; nothing is backed up to a server. Use one active tab for the game.
 
 Guidance uses only your hole cards and the revealed board. Preflop describes the starting hand; full-hand explanations start on the flop. Draws appear only on flop/turn and only for stronger, not-yet-made straight or flush categories. No odds, betting advice, backdoor draws, or higher-straight/flush/straight-flush upgrade guidance is included. The setting is saved with the game; older saves default to On. Turning it off preserves the original showdown results.
 
@@ -32,7 +32,7 @@ The public UI omits hidden identities from cards, animations, logs, accessible l
 
 ## Simulation
 
-Choose **Play → Simulation**, then **Deal Hole Cards**. Control all players directly; their cards remain visible. Use the one-chip Min–Max slider and confirm each betting decision. Once a round ends, choose **Deal Flop/Turn/River**. The table scrolls into view before cards move, and every street pauses, including two-runout hands.
+Choose **Study → Simulation**, then **Deal Hole Cards**. Control all players directly; their cards remain visible. Use the one-chip Min–Max slider and confirm each betting decision. Once a round ends, choose **Deal Flop/Turn/River**. The table scrolls into view before cards move, and every street pauses, including two-runout hands.
 
 Each seat shows cards, category, action, and Hand equity. Player sections below add Win/Tie and best-five cards. Calculations ignore future deck order, exclude all dealt hands and burns, and remove folded players from competition. A/B odds also exclude revealed non-shared cards on the other board. They compare a hypothetical equal pot, not actual chip returns. Preflop samples 20,000 boards; postflop enumerates all remaining boards. Cancel hides unfinished results; Calculate again retries. Play remains available while calculating.
 
@@ -44,13 +44,19 @@ Normal river betting, final all-in runouts, and fold wins finish automatically. 
 
 ## Validation
 
+The current suite passes **89 tests**: 47 poker/session, 35 UI boundary, and 7 equity tests. New checks cover direct Check, opening routes, Next hand, confirmed/cancelled Rematch, and expandable guidance privacy. Final phone and eight-player/two-board visual checks remain pending.
+
+The current redesign checks are recorded in [the redesign validation notes](../.scratch/web-ux-refresh/validation.md). Historical entries below describe the behavior at the time of each check.
+
 Run from the repository root:
 
 ```sh
 node --test --test-isolation=none prototypes/dealing-prototype.test.cjs prototypes/dealing-prototype.ui.test.cjs prototypes/equity-prototype.test.cjs
 ```
 
-59 tests pass: 47 public-behavior tests cover dealing/ranking, betting and side pots, continuing games, private views, recovery, and hand guidance. Guidance checks cover all categories, defining cards and kickers, board-only hands, simultaneous draws, ace boundaries, overlapping straight patterns, hidden-card independence, old-save compatibility, voting, folded hands, and two-board showdown. Twelve DOM/animation-boundary tests check Simulation cancellation and Peek event wiring, including pointer release/cancel/lost capture, keyboard release, focus/background/navigation, tap reveal, and guidance off, confirmation/cancellation and single action commits for every betting action, collapsible player results, and one celebration per hand. A state test verifies readiness before flop, turn, and river, including recovery during the pause. These boundary doubles do not establish browser rendering or physical touch behavior. All four inline scripts pass syntax checks.
+### Earlier validation — before the website redesign
+
+At that stage, 59 tests passed: 47 public-behavior tests cover dealing/ranking, betting and side pots, continuing games, private views, recovery, and hand guidance. Guidance checks cover all categories, defining cards and kickers, board-only hands, simultaneous draws, ace boundaries, overlapping straight patterns, hidden-card independence, old-save compatibility, voting, folded hands, and two-board showdown. Twelve DOM/animation-boundary tests check Simulation cancellation and Peek event wiring, including pointer release/cancel/lost capture, keyboard release, focus/background/navigation, tap reveal, and guidance off, confirmation/cancellation and single action commits for every betting action, collapsible player results, and one celebration per hand. A state test verifies readiness before flop, turn, and river, including recovery during the pause. These boundary doubles do not establish browser rendering or physical touch behavior. All four inline scripts pass syntax checks.
 
 Browser checks exercised setup, six-seat portrait layout, private tap reveal, concealment on action, reload/resume, unanimous voting, both runouts, payouts, a new heads-up hand after elimination, normal betting through the river, and keyboard release of hold-to-peek. No browser JavaScript errors appeared in those flows. These are desktop browser checks, not physical Android touch or screen-reader validation.
 
@@ -58,7 +64,7 @@ The revised six-seat layout had no overlapping seats or horizontal overflow at a
 
 The guidance extension was checked in the browser on 2026-11-06: default-on setup, tap reveal/hide, concealment on action, saved-game resume with a fresh handoff, preflop descriptions, flop/turn explanations, two-pair highlights and kicker labels, and public showdown explanations. There was no horizontal overflow at an observed 375-pixel viewport width, and the tested flow produced no browser JavaScript errors. Tests ran at the separate `localhost` origin to preserve the user's `127.0.0.1` saved game. Physical Android hold/scroll behavior and a real screen reader remain unchecked. The draw rows and hold/cancellation event paths are covered by boundary tests; they were not all exercised live in this browser pass. See the [portrait screenshot](../.scratch/pass-and-play/peek-guidance-preview.jpg).
 
-The evaluator remains the small JavaScript reference implementation, not poker.net. Shuffling uses browser crypto randomness. Tests do not exhaustively enumerate every hand or betting sequence. This is a local behavior prototype, not a production or real-money app.
+The evaluator remains the small JavaScript reference implementation, not poker.net. Shuffling uses browser crypto randomness. Tests do not exhaustively enumerate every hand or betting sequence. This app uses play chips and is not a real-money game. Physical-phone validation remains necessary.
 
 ## Design record
 
@@ -125,3 +131,7 @@ Local branch: `codex/simulation-refresh`. All 83 tests pass: 47 engine/session, 
 The in-app browser completed real worker calculations, preflop betting, and an eight-player two-board all-in hand with automatic payouts. At an observed 401 CSS-pixel viewport, 2/6/7/8-player layouts had no seat overlaps; the measured two-board eight-seat table was about 604 pixels high with both categories visible. Two/six-seat preflop tables were about 396 pixels and seven-seat preflop about 479 pixels. These are content-dependent observations, not fixed heights or phone performance guarantees. A sticky-scroll defect found in the browser was fixed by scrolling to an anchor above the board.
 
 Physical Android speed/touch use and screen-reader behavior still require testing. No GitHub push or deployment was made. Earlier validation sections above describe earlier passes.
+
+## Typography
+
+The website uses locally hosted Inter Variable for headings, branding, cards, and controls, with system sans-serif fallbacks. The font and its SIL Open Font License are in `fonts/`. No external font service is needed.
