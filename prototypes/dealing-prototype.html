@@ -70,7 +70,7 @@ const FX=(()=>{
    document.documentElement.classList.add('cards-dealing');
    lockedSurfaces=[...document.querySelectorAll('#pocket-app,#simulation')].map(el=>[el,el.inert]);
    lockedSurfaces.forEach(([el])=>{el.inert=true;});
-   dealingShield=document.createElement('div');dealingShield.className='dealing-shield';dealingShield.setAttribute('role','status');dealingShield.textContent='Dealing cards… Controls return at the next pause.';document.body.append(dealingShield);
+   dealingShield=document.createElement('div');dealingShield.className='dealing-shield';dealingShield.setAttribute('role','status');dealingShield.setAttribute('aria-label','Dealing cards');document.body.append(dealingShield);
   }
   return ()=>{dealingLocks.delete(token);if(!dealingLocks.size)unlockDealing();};
  }
@@ -405,6 +405,30 @@ var Poker = (() => {
   return {create,next,fullDeck,runTwice,canRunTwice,rank,guide,results,positions,act,legal,nextHand,seatPositions,showdown,potResults};
 })();
 </script>
+<style>
+.equity-bar{display:block;min-width:0;width:100%;margin-top:4px;color:#173c32;font-size:11px;line-height:1.3;text-align:left}.equity-bar-label{display:block;margin-bottom:3px;font-weight:700}.equity-track{display:block;height:6px;width:100%;background:#d4d9d4;border-radius:3px;overflow:hidden}.equity-fill{display:block;height:100%;border-radius:inherit}.equity-bar+.equity-bar{margin-top:6px}.eq-percentages .equity-bar{font-size:13px}.mp-equity{display:block;width:100%}.equity-details{display:block;margin-top:4px}
+</style>
+<script id="equity-bars">
+const EquityBars=(()=>{
+  const duration=200;
+  function percent(value,estimated=false){return (estimated?'≈ ':'')+(value>0&&value<.001?'&lt;0.1':(value*100).toFixed(1))+'%';}
+  function html(value,estimated=false,board=''){
+    const valid=Number.isFinite(value),amount=valid?Math.max(0,Math.min(100,value*100)):0;
+    const text=valid?percent(value,estimated):'—',label=(board?board+' · ':'')+'Hand equity';
+    const color=amount===0?'#929b96':`hsl(${amount<=50?amount*.8:40+(amount-50)*1.6} 65% 36%)`;
+    return `<span class="equity-bar"><span class="equity-bar-label">${board?board+' · ':''}${text} equity</span><span class="equity-track" ${valid?`role="meter" aria-label="${label}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${amount}" aria-valuetext="${text}${estimated?' estimated':''}"`:`role="img" aria-label="${label} unavailable"`}><span class="equity-fill" data-equity-valid="${valid}" style="width:${amount}%;background-color:${color}"></span></span></span>`;
+  }
+  function update(el,markup){
+    const old=[...el.querySelectorAll('.equity-fill')].map(fill=>({valid:fill.dataset.equityValid==='true',width:fill.style.width,backgroundColor:fill.style.backgroundColor}));
+    el.innerHTML=markup;
+    if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+    el.querySelectorAll('.equity-fill').forEach((fill,i)=>{
+      if(old[i]?.valid&&fill.dataset.equityValid==='true')fill.animate([{width:old[i].width,backgroundColor:old[i].backgroundColor},{width:fill.style.width,backgroundColor:fill.style.backgroundColor}],{duration,easing:'ease-in-out'});
+    });
+  }
+  return {html,percent,update};
+})();
+</script>
 <script id="equity-engine">
 var Equity=(()=>{
   function validate({hands,board,dead=[]}){
@@ -569,9 +593,9 @@ const cardText=c=>(rankNames[c[0]]||c[0])+suitSymbols[c[1]];
 function card(c,extra='',id='') {
   return `<span ${id?`id="${id}"`:''} class="card ${c&&'dh'.includes(c[1])?'red':''} ${c?'':'empty'} ${extra}" ${c?`aria-label="${cardName(c)}"`:'aria-label="Empty card slot"'}>${c?`<span>${rankNames[c[0]]||c[0]}</span><span class="suit">${suitSymbols[c[1]]}</span>`:'·'}</span>`;
 }
-function communityMeta(boards,shared,stage){
+function communityMeta(boards,shared,stage,hand=null){
   const label={dealing:'Hole cards',preflop:'Preflop',flop:'Flop',turn:'Turn',river:'River',showdown:'Showdown',complete:'Hand complete'}[stage]||stage;
-  return `<span class="board-meta">${boards.length===2?'Two runs':'One board'}${shared?' · '+shared+' shared':''}<span class="board-stage">${safe(label)}</span></span>`;
+  return `<span class="board-meta">${hand===null?(boards.length===2?'Two runs':'One board'):`Hand ${hand} · Blinds 1/2${boards.length===2?' · Two runs':''}`} ${shared?' · '+shared+' shared':''}<span class="board-stage">${safe(label)}</span></span>`;
 }
 function randomBelow(n){
   const value=new Uint32Array(1),limit=4294967296-4294967296%n;
@@ -639,8 +663,8 @@ function startSimulationEquity(){
 function simulationPercent(i,details=false){
   if(state.betting?.folded[i])return 'Folded';
   return state.boards.map((_,j)=>{
-    const r=simEquity.results[j],p=r?.players?.[r.seats.indexOf(i)],pct=n=>(r.exact?'':'≈ ')+(n*100).toFixed(1)+'%';
-    return `<div>${state.twice?(j?'B':'A')+': ':''}${p?'<strong>'+pct(p.equity)+'</strong>':'—'} ${details?'Hand equity':state.twice?'':'equity'}${details&&p?'<br>Win '+pct(p.win)+' · Tie '+pct(p.tie):''}</div>`;
+    const r=simEquity.results[j],p=r?.players?.[r.seats.indexOf(i)],estimated=r&&!r.exact;
+    return EquityBars.html(p?.equity,estimated,state.twice?(j?'B':'A'):'')+(details&&p?`<span class="equity-details">Win ${EquityBars.percent(p.win,estimated)} · Tie ${EquityBars.percent(p.tie,estimated)}</span>`:'');
   }).join('');
 }
 function renderSimulationEquity(){
@@ -649,7 +673,7 @@ function renderSimulationEquity(){
   const action=simEquity.status==='running'?'cancel':['cancelled','error'].includes(simEquity.status)?'retry':'';
   if(status.dataset.action===action&&$('sim-equity-progress'))$('sim-equity-progress').textContent=text;
   else {status.dataset.action=action;status.innerHTML=`<p id="sim-equity-progress">${safe(text)}</p>${action?`<button id="sim-equity-${action}">${action==='cancel'?'Cancel calculation':'Calculate again'}</button>`:''}<p>Hand equity compares all non-folded hands in one equal pot, not actual chip payouts or side pots. Estimates may vary.</p>`;}
-  state.hands.forEach((_,i)=>{if($('sim-equity-seat-'+i))$('sim-equity-seat-'+i).innerHTML=simulationPercent(i);if($('sim-equity-detail-'+i))$('sim-equity-detail-'+i).innerHTML=simulationPercent(i,true);});
+  state.hands.forEach((_,i)=>{if($('sim-equity-seat-'+i))EquityBars.update($('sim-equity-seat-'+i),simulationPercent(i));if($('sim-equity-detail-'+i))EquityBars.update($('sim-equity-detail-'+i),simulationPercent(i,true));});
   if(action==='cancel')$('sim-equity-cancel').onclick=()=>{stopSimulationEquity();renderSimulationEquity();};
   if(action==='retry')$('sim-equity-retry').onclick=startSimulationEquity;
 }
@@ -954,7 +978,7 @@ render();
   }
   function gameHTML(v){
     const history=`<section class="public-history" aria-label="Betting history"><h2>Betting history</h2>${v.historyRounds.map(round=>`<section class="history-round"><h3>${safe(round.label)}</h3>${round.actions.length?`<ol>${round.actions.map(e=>`<li>${safe(v.seats[e.player].name)}: ${safe(e.text)}</li>`).join('')}</ol>`:'<p>No betting</p>'}</section>`).join('')}</section>`;
-    return `<div class="game-top"><div><div id="game-home" class="brand-small brand-home">${brand()}</div><small>Hand ${v.hand} · Blinds 1 / 2</small></div><button id="save-leave">Save &amp; Leave</button></div><section id="mp-community" class="mp-board" aria-label="Community cards"><div class="pot-strip"><strong>Pot ${v.pot}</strong>${communityMeta(v.boards,v.shared,v.settled?'complete':v.stage)}</div>${v.boards.map((board,j)=>`<div class="board-line"><span class="board-name">${j?'B':'A'}</span><div class="board-cards">${Array.from({length:5},(_,i)=>card(board[i],i<v.shared?'shared':'',`mp-board-${j}-${i}`)).join('')}</div></div>${boardVerdict(v,j)}`).join('')}</section><div class="game-scroll" id="game-scroll" tabindex="0" aria-label="Table and betting history"><section class="mp-oval seats-${v.seats.length} ${v.seats.length>6?'large-table':''}" aria-label="Clockwise seats"><div class="mp-center">${back('mp-deck')}<span id="mp-burn" class="burn-holder" aria-label="Burn pile">${v.burns}</span><p>${v.remaining} in deck</p></div>${v.seats.map((p,i)=>`<div class="mp-seat${v.settled?(p.award>0?' seat-winner':' seat-loser'):''} action-${p.actionColor} ${i===v.actor?'acting':''} ${p.folded&&p.seated?'folded':''} ${p.seated?'':'out'}" style="${seatStyle(i,v.seats.length)}" aria-label="Seat ${i+1}: ${safe(p.name)}"><strong title="${safe(p.name)}">${safe(p.name)}</strong><small>${safe(p.position)}${!p.seated&&p.position!=='Out'?' · empty':''}</small>${i===v.button?'<span class="dealer" aria-label="Dealer button">D</span>':''}<div class="chips">${p.stack} chips</div><div class="mini-holes ${p.publicCards?'public-holes':''}">${[0,1].map(j=>p.publicCards?card(p.cards[j],'',`mp-hole-${i}-${j}`):p.cards.length>j?back(`mp-hole-${i}-${j}`):card(null,'',`mp-hole-${i}-${j}`)).join('')}</div>${p.categories.map((category,j)=>category?`<small class="seat-rank">${v.boards.length===2?(j?'B: ':'A: '):''}${safe(category)}</small>`:'').join('')}<small id="mp-equity-${i}" class="mp-equity"></small><small class="seat-note">${v.settled&&p.award>0?'Won '+p.award+' chips':p.seated&&!v.settled?[safe(p.lastAction),p.paid?p.paid+' in':''].filter(Boolean).join(' · '):''}</small></div>`).join('')}</section><div class="game-status" role="status">${safe(message|| (v.publicCards?(v.settled?'Shared showdown results':'Hole cards are public. The hand finishes after the final river.'):v.phase==='turn'?'Your cards hide as soon as you finish your action.':v.phase==='handoff'?'Pass the phone with all cards hidden.':'Shared table view'))}</div>${v.publicCards?'<p class="subtle">Hand equity uses public cards only and compares one equal pot, not side-pot payouts. ≈ means estimated.</p>':''}${v.phase==='result'?'':history}</div><section class="turn-box" aria-label="${v.phase==='result'?'Hand result':'Turn controls'}">${turnHTML(v)}</section>${v.phase==='result'?history:''}`;
+    return `<div class="game-top"><div><div id="game-home" class="brand-small brand-home">${brand()}</div></div><button id="save-leave">Save &amp; Leave</button></div><section id="mp-community" class="mp-board" aria-label="Community cards"><div class="pot-strip"><strong>Pot ${v.pot}</strong>${communityMeta(v.boards,v.shared,v.settled?'complete':v.stage,v.hand)}</div>${v.boards.map((board,j)=>`<div class="board-line"><span class="board-name">${j?'B':'A'}</span><div class="board-cards">${Array.from({length:5},(_,i)=>card(board[i],i<v.shared?'shared':'',`mp-board-${j}-${i}`)).join('')}</div></div>${boardVerdict(v,j)}`).join('')}</section><div class="game-scroll" id="game-scroll" tabindex="0" aria-label="Table and betting history"><section class="mp-oval seats-${v.seats.length} ${v.seats.length>6?'large-table':''}" aria-label="Clockwise seats"><div class="mp-center">${back('mp-deck')}<span id="mp-burn" class="burn-holder" aria-label="Burn pile">${v.burns}</span><p>${v.remaining} in deck</p></div>${v.seats.map((p,i)=>`<div class="mp-seat${v.settled?(p.award>0?' seat-winner':' seat-loser'):''} action-${p.actionColor} ${i===v.actor?'acting':''} ${p.folded&&p.seated?'folded':''} ${p.seated?'':'out'}" style="${seatStyle(i,v.seats.length)}" aria-label="Seat ${i+1}: ${safe(p.name)}"><strong title="${safe(p.name)}">${safe(p.name)}</strong><small>${safe(p.position)}${!p.seated&&p.position!=='Out'?' · empty':''}</small>${i===v.button?'<span class="dealer" aria-label="Dealer button">D</span>':''}<div class="chips">${p.stack} chips</div><div class="mini-holes ${p.publicCards?'public-holes':''}">${[0,1].map(j=>p.publicCards?card(p.cards[j],'',`mp-hole-${i}-${j}`):p.cards.length>j?back(`mp-hole-${i}-${j}`):card(null,'',`mp-hole-${i}-${j}`)).join('')}</div>${p.categories.map((category,j)=>category?`<small class="seat-rank">${v.boards.length===2?(j?'B: ':'A: '):''}${safe(category)}</small>`:'').join('')}<small class="seat-note">${v.settled&&p.award>0?'Won '+p.award+' chips':p.seated&&!v.settled?[safe(p.lastAction),p.paid?p.paid+' in':''].filter(Boolean).join(' · '):''}</small><span id="mp-equity-${i}" class="mp-equity"></span></div>`).join('')}</section><div class="game-status" role="status">${safe(message|| (v.publicCards?(v.settled?'Shared showdown results':'Hole cards are public. The hand finishes after the final river.'):v.phase==='turn'?'Your cards hide as soon as you finish your action.':v.phase==='handoff'?'Pass the phone with all cards hidden.':'Shared table view'))}</div>${v.publicCards?'<p class="subtle">Hand equity uses public cards only and compares one equal pot, not side-pot payouts. ≈ means estimated.</p>':''}${v.phase==='result'?'':history}</div><section class="turn-box" aria-label="${v.phase==='result'?'Hand result':'Turn controls'}">${turnHTML(v)}</section>${v.phase==='result'?history:''}`;
   }
   function renderApp(previous=null){
     const closedResults=[...app.querySelectorAll('.player-result')].map(el=>!el.open);
@@ -1013,10 +1037,10 @@ render();
   function renderPublicEquity(v,error=''){
     publicSeats.forEach((seat,k)=>{
       const el=$('mp-equity-'+seat);if(!el)return;
-      el.innerHTML=error||publicError||v.boards.map((_,j)=>{
+      EquityBars.update(el,v.boards.map((_,j)=>{
         const r=publicResults[j],p=r?.players?.[k];
-        return (v.boards.length===2?(j?'B: ':'A: '):'')+(p?(r.exact?'':'≈ ')+(p.equity*100).toFixed(1)+'% equity':'… equity');
-      }).join('<br>');
+        return EquityBars.html(error||publicError?undefined:p?.equity,r&&!r.exact,v.boards.length===2?(j?'B':'A'):'');
+      }).join('')+(error||publicError?'<span>Equity unavailable</span>':''));
     });
   }
   function syncPublicEquity(v){
@@ -1087,8 +1111,9 @@ render();
       if(r){$('eq-progress-track').max=r.total;$('eq-progress-track').value=r.completed;}
     }else $('eq-status').innerHTML=eq.status==='incomplete'?'<p>Choose two cards for every player and fill the selected board stage.</p>':eq.status==='running'?`<p id="eq-progress-label">${eq.stage===0?'Estimated · sampling':'Exact · calculating'} ${r?r.completed:0} / ${r?r.total:eq.stage===0?20000:'…'} boards</p><progress id="eq-progress-track" aria-label="Calculation progress" ${r?`value="${r.completed}" max="${r.total}"`:''}></progress><button id="eq-cancel">Cancel</button>`:eq.status==='complete'?`<p role="status">${eq.result.exact?'Exact':'Estimated'} · ${eq.result.completed.toLocaleString()} boards${eq.result.exact?'':' · estimates may vary'}</p>`:`<p role="status">${eq.status==='error'?safe(eq.error):'Calculation cancelled. Cards are kept.'}</p><button id="eq-retry">Calculate again</button>`;
     eq.hands.forEach((_,i)=>{
-      const r=eq.result,p=r?.players[i],pct=n=>(r.exact?'':'≈ ')+(100*n).toFixed(1)+'%';
-      $('eq-result-'+i).innerHTML=p?`<strong>${pct(p.equity)} <small>Equity</small></strong><span>Win ${pct(p.win)}</span><span>Tie ${pct(p.tie)}</span>${eq.stage===5&&p.equity>0?`<b class="eq-winner">${p.tie?'Tied winner':'Winner'}</b>`:''}`:'<strong>— <small>Equity</small></strong><span>Win —</span><span>Tie —</span>';
+      const r=eq.result,p=r?.players[i],pct=n=>EquityBars.percent(n,r&&!r.exact);
+      EquityBars.update($('eq-result-'+i),EquityBars.html(p?.equity,r&&!r.exact)+(p?`<span>Win ${pct(p.win)}</span><span>Tie ${pct(p.tie)}</span>${eq.stage===5&&p.equity>0?`<b class="eq-winner">${p.tie?'Tied winner':'Winner'}</b>`:''}`:'<span>Win —</span><span>Tie —</span>'));
+
     });
     if($('eq-cancel'))$('eq-cancel').onclick=()=>{stopEquity();renderEquityResults();};
     if($('eq-retry'))$('eq-retry').onclick=calculateEquity;
@@ -1326,7 +1351,7 @@ dialog[open],.winner-dialog[open]{animation:dialog-arrival var(--dialog-time) va
 
 html.cards-dealing,html.cards-dealing body{overflow:hidden!important;overscroll-behavior:none;touch-action:none}
 .cards-dealing #game-scroll,.cards-dealing .turn-box{overflow:hidden!important;touch-action:none}
-.dealing-shield{position:fixed;inset:0;z-index:2000;touch-action:none;cursor:wait;display:flex;align-items:flex-end;justify-content:center;padding:12px 18px max(12px,env(safe-area-inset-bottom));color:#fff;font:600 12px/1.4 var(--font-ui);background:linear-gradient(transparent calc(100% - 52px),#173c32 calc(100% - 52px));text-align:center}
+.dealing-shield{position:fixed;inset:0;z-index:2000;touch-action:none;cursor:wait;background:transparent}
 
 
 body[data-effects="true"] [data-winning-hand] .card{outline:1px solid #b18a35;outline-offset:2px}

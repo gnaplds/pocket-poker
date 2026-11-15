@@ -496,7 +496,8 @@ test('Simulation and Pass & Play share community board labels and street present
  const p=page(savedFlop()),{ids}=p,app=ids.get('pocket-app');
  ids.get('resume-game').onclick();
  assert.match(app.innerHTML,/class="board-stage">Flop/);
- assert.match(app.innerHTML,/class="board-meta">One board/);
+ assert.match(app.innerHTML,/class="board-meta">Hand 1 · Blinds 1\/2/);
+ assert.doesNotMatch(app.innerHTML.split('<section id="mp-community"')[0],/Blinds/);
  ids.get('save-leave').onclick();ids.get('home-save').onclick();app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='simulation').onclick();
  await ids.get('sim-deal').onclick();assert.match(ids.get('stage').innerHTML,/class="board-stage">Preflop/);
  assert.match(ids.get('stage').innerHTML,/class="board-meta">One board/);
