@@ -7,7 +7,17 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
  context.fx.winner({showModal(){opened++;}});context.fx.clear();
  await new Promise(r=>setTimeout(r,220));assert.equal(opened,0);
  reduced=true;context.fx.winner({showModal(){opened++;}});assert.equal(opened,1);assert.equal(await context.fx.shuffle(),true);
+ const surfaces=[{inert:false},{inert:true}],classes=new Set();let removed=0;
+ context.document.documentElement={classList:{add:v=>classes.add(v),remove:v=>classes.delete(v)}};
+ context.document.querySelectorAll=()=>surfaces;
+ context.document.createElement=()=>({setAttribute(){},remove(){removed++;}});
+ context.document.body={append(){}};
+ const releaseA=context.fx.lockDealing(),releaseB=context.fx.lockDealing();
+ assert(classes.has('cards-dealing'));assert(surfaces.every(s=>s.inert));
+ releaseA();assert(classes.has('cards-dealing'),'nested card completion must not unlock a street');
+ releaseB();assert(!classes.has('cards-dealing'));assert.equal(surfaces[0].inert,false);assert.equal(surfaces[1].inert,true);
+ const stale=context.fx.lockDealing();context.fx.unlockDealing();const current=context.fx.lockDealing();stale();assert(classes.has('cards-dealing'),'stale completion cannot unlock a new deal');current();assert.equal(removed,3);
  const html=fs.readFileSync(__dirname+'/motion-prototype.html','utf8');assert(!/localStorage\.|sessionStorage\./.test(html));
  for(const m of html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g))new vm.Script(m[1]);
- console.log('Passed: cancelled winner, reduced-motion feedback, no storage access, script syntax.');
+ console.log('Passed: cancelled winner, reduced-motion feedback, no storage access, script syntax, nested dealing locks and cleanup.');
 })();

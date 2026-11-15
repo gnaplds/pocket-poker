@@ -627,7 +627,7 @@ async function oneCard() {
   if(simPaused||busy||waiting()||state.stage==='complete') return;
   if(!state.log.length||state.log.at(-1).end)$('sim-table-start').scrollIntoView({block:'start',behavior:'instant'});
   busy=true;stopSimulationEquity('dealing');renderSimulationEquity();controls();
-  const next=Poker.next(state),event=next.log.at(-1);
+  const next=Poker.next(state),event=next.log.at(-1),unlock=FX.lockDealing();
   try {
     await animateCard(event,next);
     state=next;
@@ -637,7 +637,7 @@ async function oneCard() {
       notice+=waiting()?' Betting: '+name(state.betting.actor)+' to act.':' Stage complete. Inspect the hands, continue, or choose Run it twice.';
     }
     if(state.stage==='complete'){playing=false;notice+=' Deal complete. See the winners for each board below.';}
-  } finally {busy=false;render();}
+  } finally {busy=false;render();unlock();}
 }
 async function prepareSimulation(){
  if(!FX.enhanced||simPrepared)return true;
@@ -651,8 +651,8 @@ async function play(){
   if(playing){playing=false;playbackId++;notice='Pausing after the moving card lands.';$('notice').textContent=notice;controls();return;}
   if(simPaused||busy)return;
   const id=++playbackId;playing=true;controls();
-  while(playing&&id===playbackId&&!waiting()&&state.stage!=='complete') {await oneCard(); if(playing&&id===playbackId&&!$('reduce').checked)await new Promise(r=>setTimeout(r,120/speed()));}
-  controls();
+  const unlock=FX.lockDealing();try{while(playing&&id===playbackId&&!waiting()&&state.stage!=='complete') {await oneCard(); if(playing&&id===playbackId&&!$('reduce').checked)await new Promise(r=>setTimeout(r,120/speed()));}
+  }finally{unlock();controls();}
 }
 function reset(players,deck,message){
   FX.clear();simPrepared=false;stopSimulationEquity('incomplete');simEquity.key='';simCelebrated=false;$('sim-winner').close();$('sim-celebration').innerHTML='';playing=false;simPaused=false;playbackId++;state=Poker.create(players,deck,$('betting-mode').checked);$('player-count').value=String(players);
@@ -673,7 +673,7 @@ async function shuffleNew(){
   busy=false;reset(Number($('player-count').value),shuffled(),'New shuffled deck. Its displayed order is the order we will deal.');
 }
 function twice(){state=Poker.runTwice(state);notice='Two runs selected. Keep the same hands and shared board cards. Finish A, then B.';render();}
-async function stage(){if(simPaused||busy||waiting())return false;const id=playbackId;do{await oneCard();}while(!simPaused&&id===playbackId&&!$('simulation').hidden&&!waiting()&&state.stage!=='complete'&&!state.log.at(-1).end);}
+async function stage(){if(simPaused||busy||waiting())return false;const id=playbackId,unlock=FX.lockDealing();try{do{await oneCard();}while(!simPaused&&id===playbackId&&!$('simulation').hidden&&!waiting()&&state.stage!=='complete'&&!state.log.at(-1).end);}finally{unlock();}}
 const guides={
  normal:{text:'Follow one fixed four-player deal. Watch the two passes, each burn, and Seat 1 making a royal flush at the turn.',steps:[['Load example',()=>load('normal')],['Deal hole cards',stage],['Burn + flop',stage],['Burn + turn',stage],['Burn + river',stage]]},
  twice:{text:'Both players flop three of a kind. Share that flop, finish A, then B. Seat 1 wins A; Seat 2 makes four kings and wins B.',steps:[['Load example',()=>load('twice')],['Deal hole cards',stage],['Burn + flop',stage],['Run it twice',twice],['Deal A turn',stage],['Deal A river',stage],['Deal B turn',stage],['Deal B river',stage]]},
@@ -740,6 +740,7 @@ $('replay').onclick=()=>replaceSimulation(async()=>{invalidateGuide();reset(stat
 $('player-count').onchange=()=>{const count=Number($('player-count').value);$('player-count').value=String(state.players);return replaceSimulation(()=>{$('player-count').value=String(count);return shuffleNew();});};
 document.querySelectorAll('[data-guide]').forEach(b=>b.onclick=()=>{guideKey=b.dataset.guide;guideStep=0;document.querySelectorAll('[data-guide]').forEach(t=>t.setAttribute('aria-selected',String(t===b)));renderGuide();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)cancelSimConfirm();if(document.hidden&&playing){playing=false;playbackId++;notice='Playback paused while the page was hidden.';controls();}});
+window.addEventListener('blur',()=>{if(busy||playing){simPaused=true;playing=false;playbackId++;controls();}});
 function seatStyle(i,n){if(n>6){const points=n===8?[[50,90],[15,75],[15,50],[15,25],[50,10],[85,25],[85,50],[85,75]]:[[50,90],[15,75],[15,50],[15,25],[50,10],[85,30],[85,65]];return `left:${points[i][0]}%;top:${points[i][1]}%;grid-column:${points[i][0]<30?1:points[i][0]>70?3:2};grid-row:${points[i][1]<40?1:points[i][1]>60?3:2};--seat-lift:0px;--rank-lift:0%`;}const angle=(90+i*360/n)*Math.PI/180;return `left:${50+35*Math.cos(angle)}%;top:${50+34*Math.sin(angle)}%;--seat-lift:${Math.max(0,Math.sin(angle))*48}px;--rank-lift:${Math.abs(Math.cos(angle))<0.1?0:Math.sin(angle)<-0.1?30:5}%`;}
 render();
 </script>
@@ -779,7 +780,7 @@ render();
     saved=Match.save(match);
     try{motionMemory.setItem(storageKey,saved);saveError='';}catch(e){saveError='This game could not be saved on the device. Keep this page open to continue; closing it may lose progress.';}
   }
-  function stop(){pumpId++;if(flight){flight.cancel();flight=null;}document.querySelectorAll('.mp-flight').forEach(el=>el.remove());}
+  function stop(){FX.unlockDealing();pumpId++;if(flight){flight.cancel();flight=null;}document.querySelectorAll('.mp-flight').forEach(el=>el.remove());}
   function conceal(){
     FX.clear();
     $('winner-popup').close();cancelRematch();cancelBet();detailsOpen=false;if(!match)return;stop();match=Match.restore(Match.save(match));persist();if(screen==='game')renderApp();
@@ -1109,10 +1110,10 @@ render();
       flight=$('mp-deck').animate([{transform:'rotate(-12deg) translateX(-12px)'},{transform:'rotate(12deg) translateX(12px)'},{transform:'none'}],{duration:DEAL_TIMING.shuffle,iterations:DEAL_TIMING.shuffleCycles});
       try{await flight.finished;}catch(e){}finally{flight=null;}
     }
-    try{while(id===pumpId&&screen==='game'&&!document.hidden&&Match.view(match).phase==='dealing'){
+    const unlock=FX.lockDealing();try{while(id===pumpId&&screen==='game'&&!document.hidden&&Match.view(match).phase==='dealing'){
       match=Match.command(match,{type:'deal'});persist();await animateMove(Match.view(match));
       if(id!==pumpId)return;renderApp();
-    }}catch(e){message='Dealing paused: '+e.message;conceal();}
+    }}catch(e){message='Dealing paused: '+e.message;conceal();}finally{unlock();}
   }
   $('simulation-menu').onclick=()=>navigate('modes');
   window.addEventListener('blur',()=>{if(screen==='game')conceal();});

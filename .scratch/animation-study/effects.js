@@ -23,6 +23,30 @@ const FX=(()=>{
  const cards=[...dialog.querySelectorAll('i')];cards.forEach((el,i)=>animate(el,[{transform:'translate(0,0) rotate(0)'},{transform:`translate(${i%2?42:-42}px,${i*3}px) rotate(${i%2?9:-9}deg)`,offset:.25},{transform:`translate(${i%2?10:-10}px,${i*3}px) rotate(0)`,offset:.75},{transform:`translate(0,${i*2}px) rotate(0)`}],{duration:TIME.shuffle,easing:MOVE,fill:'forwards'}));
  return new Promise(resolve=>{let finished=false;const finish=ok=>{if(finished)return;finished=true;clearTimeout(timer);dialog.close();dialog.remove();abortShuffle=null;resolve(ok);};const timer=setTimeout(()=>finish(true),TIME.shuffle);abortShuffle=()=>finish(false);dialog.querySelector('button').onclick=()=>{clear();};dialog.oncancel=e=>{e.preventDefault();clear();};});
  }
+ const dealingLocks=new Set();let dealingShield=null,lockedSurfaces=[];
+ function unlockDealing(){
+  dealingLocks.clear();dealingShield?.remove();dealingShield=null;
+  document.documentElement.classList.remove('cards-dealing');
+  lockedSurfaces.forEach(([el,inert])=>{el.inert=inert;});lockedSurfaces=[];
+ }
+ function lockDealing(){
+  const token={};dealingLocks.add(token);
+  if(!dealingShield){
+   document.documentElement.classList.add('cards-dealing');
+   lockedSurfaces=[...document.querySelectorAll('#pocket-app,#simulation,#motion-lab')].map(el=>[el,el.inert]);
+   lockedSurfaces.forEach(([el])=>{el.inert=true;});
+   dealingShield=document.createElement('div');dealingShield.className='dealing-shield';dealingShield.setAttribute('role','status');dealingShield.textContent='Dealing cards… Controls return at the next pause.';document.body.append(dealingShield);
+  }
+  return ()=>{dealingLocks.delete(token);if(!dealingLocks.size)unlockDealing();};
+ }
+ // Keep programmatic table positioning available; block only user input during a deal.
+ for(const type of ['wheel','touchmove','pointerdown','click','keydown'])document.addEventListener(type,e=>{
+  if(!dealingLocks.size||e.target.closest?.('dialog[open]'))return;
+  if(type==='keydown'&&(e.metaKey||e.ctrlKey||e.altKey))return;
+  e.preventDefault();e.stopImmediatePropagation();
+ },{capture:true,passive:false});
+ window.addEventListener('blur',unlockDealing);
+ document.addEventListener('visibilitychange',()=>{if(document.hidden)unlockDealing();});
  function install(){
  const bar=document.createElement('details');bar.id='motion-lab';bar.open=true;bar.innerHTML='<summary>Animation comparison</summary><div><button id="fx-switch"></button><button id="fx-preview">Preview shuffle</button></div><p id="fx-state"></p><p>Practice games reset on reload. Collapse this bar to play.</p>';document.body.append(bar);
  const refresh=()=>{document.body.dataset.effects=String(enhanced);bar.querySelector('#fx-switch').textContent=enhanced?'Added effects → Current':'Current → Added effects';bar.querySelector('#fx-state').textContent=(enhanced?'Added effects':'Current')+' · original card travel · '+(reduced()?'reduced motion':'motion on')+' · no persistent saves';};
@@ -34,5 +58,5 @@ const FX=(()=>{
  document.addEventListener('click',()=>{if(!abortShuffle)clear();},true);
  window.addEventListener('blur',clear);document.addEventListener('visibilitychange',()=>{if(document.hidden)clear();});
  document.addEventListener('DOMContentLoaded',install);
- return {get enhanced(){return enhanced;},clear,shuffle,winner,snapshot,contribution};
+ return {get enhanced(){return enhanced;},clear,shuffle,winner,snapshot,contribution,lockDealing,unlockDealing};
 })();

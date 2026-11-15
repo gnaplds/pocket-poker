@@ -27,3 +27,7 @@ Self-check passes: cancelled winner never opens; reduced-motion winner opens imm
 Still pending: complete Simulation and multiplayer hands with new effects, physical-phone smoothness, browser reduced-motion check, slow-motion scrub, ten-use review, eight-player/two-board effects, real device lock/resume. Code checks are not evidence of visual quality. This is throwaway code, not ready for deployment; implement the chosen effects in production with full behavior checks only after review.
 
 No ADR or glossary changes: these are reversible presentation decisions, not new poker-domain concepts.
+
+## Dealing input lock
+
+During each dealing sequence, a transparent input shield blocks taps, wheel/touch scrolling, and ordinary keyboard input. The table stays visible; the comparison bar is hidden. Controls return at the street pause. Nested single-card work cannot unlock an ongoing sequence, and interruption clears the lock. Browser verified the locked state during a four-player hole-card deal and attempted scrolling. Self-check covers nested locks, previous inert-state restoration, and stale completion after interruption. Physical touchscreen validation remains pending.
