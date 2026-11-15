@@ -10,7 +10,7 @@ function page(saved=null,workerAvailable=true,saveFails=false){
   let reloads=0;
   const ids=new Map(),workers=[],flights=[],scrolls=[],windowEvents={},documentEvents={};
   class Element {
-    constructor(){this.style={};this.dataset={};this.value='';this.checked=false;this.disabled=false;this.hidden=false;this.classList={add(){}};this.textContent='';}
+    constructor(){this.style={};this.dataset={};this.value='';this.checked=false;this.disabled=false;this.hidden=false;this.classList={add(){},remove(){}};this.textContent='';}
     set innerHTML(value){
       this.markup=value;
       this.children=[];
@@ -43,7 +43,7 @@ function page(saved=null,workerAvailable=true,saveFails=false){
       this.animations=[animation];flights.push(this);return animation;
     }
   }
-  const document={body:new Element(),hidden:false,createElement:()=>new Element(),getElementById:id=>ids.get(id),
+  const document={documentElement:new Element(),querySelector:()=>null,body:new Element(),hidden:false,createElement:()=>new Element(),getElementById:id=>ids.get(id),
     querySelectorAll:selector=>selector.includes('.ghost')?flights.filter(el=>!el.removed):[],addEventListener:(type,fn)=>{(documentEvents[type]??=[]).push(fn);}};
   document.body.innerHTML=html;
   for(const [,id,body] of html.matchAll(/<script id="([^"]+)">([\s\S]*?)<\/script>/g))ids.get(id).textContent=body;
@@ -51,7 +51,7 @@ function page(saved=null,workerAvailable=true,saveFails=false){
   const blobs=new Map();
   const workerURL={createObjectURL(blob){const key='blob:'+blobs.size;blobs.set(key,blob);return key;},revokeObjectURL(key){blobs.delete(key);}};
   class TestWorker{constructor(url){this.source=blobs.get(url);if(!workerAvailable)throw Error('Worker unavailable');workers.push(this);}postMessage(data){this.request=data;}terminate(){this.terminated=true;}}
-  const ctx=vm.createContext({Worker:TestWorker,Blob,URL:workerURL,document,crypto:webcrypto,matchMedia:()=>({matches:true}),localStorage:{getItem:()=>saved,setItem:(key,value)=>{if(saveFails)throw Error("Storage full");saved=value;}},window:{location:{reload(){reloads++;}},addEventListener:(type,fn)=>{(windowEvents[type]??=[]).push(fn);},scrollTo(options){scrolls.push({options,saved});}},setTimeout});
+  const ctx=vm.createContext({Worker:TestWorker,Blob,URL:workerURL,document,crypto:webcrypto,matchMedia:()=>({matches:true}),localStorage:{getItem:()=>saved,setItem:(key,value)=>{if(saveFails)throw Error("Storage full");saved=value;}},window:{location:{reload(){reloads++;}},addEventListener:(type,fn)=>{(windowEvents[type]??=[]).push(fn);},scrollTo(options){scrolls.push({options,saved});}},setTimeout,clearTimeout});
   for(const [,script] of html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g))vm.runInContext(script,ctx);
   return {get reloads(){return reloads;},ids,workers,flights,scrolls,windowEvents,documentEvents,document,get saved(){return saved;}};
 }

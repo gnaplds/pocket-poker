@@ -135,3 +135,7 @@ Physical Android speed/touch use and screen-reader behavior still require testin
 ## Typography
 
 The website uses locally hosted Inter Variable for headings, branding, cards, and controls, with system sans-serif fallbacks. The font and its SIL Open Font License are in `fonts/`. No external font service is needed.
+
+### Local animation update
+
+The main HTML includes centered shuffle preparation, dealing input/scroll lock, chip contribution cues, dealer movement, and per-board winning-card emphasis. It uses normal local saves; the comparison switcher is not included. Original card travel and private Peek behavior remain. Run `node --test --test-isolation=none prototypes/*.test.cjs` from the repository root, including the motion boundary checks. Physical-phone smoothness and full eight-player/two-board animation review remain pending.
