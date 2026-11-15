@@ -2,7 +2,7 @@
 
 A phone-focused Texas Hold’em game for **2–8 players on one shared device**, plus an open-card simulator for studying how hands are dealt. It uses play chips and runs entirely in the browser, with no account, backend, or runtime dependencies.
 
-**Website redesign:** `codex/web-sans-typography` adds direct Play/Continue, reachable private controls, and same-group Rematch. This branch has not been merged into `main` or deployed to the live site. The Godot Android version is separate on `codex/godot-android`; this website does not include online multiplayer.
+**Website redesign:** `main` includes direct Play/Continue, reachable private controls, and same-group Rematch. Netlify deployment status is tracked separately. The Godot Android version is separate on `codex/godot-android`; this website does not include online multiplayer.
 
 ![Community board and winning seat](.scratch/pass-and-play/board-winner-glow.png)
 
@@ -48,7 +48,6 @@ Install Python 3, then run from the repository root:
 ```sh
 git clone https://github.com/gnaplds/pocket-poker.git
 cd pocket-poker
-git switch codex/web-sans-typography
 python -m http.server 8765 --bind 127.0.0.1 --directory prototypes
 ```
 
@@ -63,7 +62,7 @@ You can also open `prototypes/dealing-prototype.html` directly, but browser supp
 3. Leave the base directory and build command empty. Set the publish directory to `prototypes` if it is not detected from `netlify.toml`.
 4. Deploy, then open the assigned Netlify URL. The root path serves the game directly.
 
-The included `netlify.toml` publishes the static app and rewrites `/` to `/dealing-prototype.html`. No environment variables, server, or package install are needed. The published folder also contains the play guide and tests; planning records outside it are available only through the GitHub repository. Deploying `main` does not include this redesign until the branch is merged. A branch preview can be reviewed separately.
+The included `netlify.toml` publishes the static app and rewrites `/` to `/dealing-prototype.html`. No environment variables, server, or package install are needed. The published folder also contains the play guide and tests; planning records outside it are available only through the GitHub repository. Deploying `main` includes the website redesign. Branch previews can be reviewed separately.
 
 See Netlify's [file-based configuration](https://docs.netlify.com/build/configure-builds/file-based-configuration/) and [rewrite documentation](https://docs.netlify.com/manage/routing/redirects/rewrites-proxies/) for these settings.
 

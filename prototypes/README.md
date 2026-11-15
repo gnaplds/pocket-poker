@@ -1,6 +1,6 @@
 # Pocket Poker play guide
 
-Open [dealing-prototype.html](dealing-prototype.html) in a browser. The app uses plain HTML/CSS/JavaScript and a locally hosted Inter font, with no framework or external runtime requests. The website redesign is on `codex/web-sans-typography`, separate from `main` and the live deployment. The native Godot Android app stays on a separate branch.
+Open [dealing-prototype.html](dealing-prototype.html) in a browser. The app uses plain HTML/CSS/JavaScript and a locally hosted Inter font, with no framework or external runtime requests. The website redesign is merged into `main`; live deployment status is tracked separately. The native Godot Android app stays on a separate branch.
 
 For a stable browser origin and local saves, run from the repository root:
 
