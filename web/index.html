@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pocket Poker</title><link rel="stylesheet" href="/styles/app.css"></head><body><script id="poker-motion" src="/scripts/motion.js"></script>
+
+<dialog id="replace-game" aria-labelledby="replace-title"><h2 id="replace-title">Replace the saved game?</h2><p>The current game and its chip stacks will be replaced.</p><div class="action-row"><button id="replace-cancel" autofocus>Keep saved game</button><button id="replace-confirm" class="primary">Start new game</button></div></dialog>
+<dialog id="home-confirm" aria-labelledby="home-title"><h2 id="home-title">Save &amp; Leave?</h2><p>Are you sure you want to leave this game? Your progress will be saved. Continue game on the opening screen brings you back.</p><div class="action-row"><button id="home-cancel" autofocus>Stay here</button><button id="home-save" class="primary">Save &amp; leave</button></div></dialog>
+<dialog id="confirm-action" aria-labelledby="action-title" aria-describedby="action-description"><h2 id="action-title">Confirm your decision</h2><p id="action-description"></p><p>Your cards are hidden. Nothing changes until you confirm.</p><div class="action-row"><button id="action-cancel" autofocus>Go back</button><button id="action-confirm" class="primary">Confirm</button></div></dialog>
+<dialog class="winner-dialog" id="winner-popup" aria-labelledby="winner-title"><div class="winner-emblem" aria-hidden="true">♠</div><h2 id="winner-title">Hand complete</h2><div id="winner-summary"></div><button id="winner-continue" class="primary" autofocus>Next hand</button><button id="winner-review">Review hand</button></dialog>
+<dialog id="rematch-dialog" aria-labelledby="rematch-title"><h2 id="rematch-title">Same people. Fresh stacks.</h2><p id="rematch-summary"></p><p>Names, seats, and card settings stay the same. A fresh deck and a random dealer start the new game.</p><div class="action-row"><button id="rematch-cancel" autofocus>Keep results</button><button id="rematch-confirm" class="primary">Start rematch</button></div></dialog>
+<dialog id="equity-picker" aria-labelledby="eq-picker-title"></dialog>
+<dialog id="equity-confirm" aria-labelledby="eq-remove-title"><h2 id="eq-remove-title">Remove entered cards?</h2><p id="eq-remove-text"></p><div class="action-row"><button id="eq-remove-cancel">Keep cards</button><button id="eq-remove-confirm">Remove cards</button></div></dialog>
+<dialog id="sim-confirm" aria-labelledby="sim-confirm-title"><h2 id="sim-confirm-title">Confirm simulation action</h2><p id="sim-confirm-text"></p><div class="action-row"><button id="sim-confirm-no" autofocus>Go back</button><button id="sim-confirm-yes" class="primary">Confirm</button></div></dialog>
+<main id="pocket-app" class="pocket-app"></main>
+<dialog class="winner-dialog" id="sim-winner" aria-labelledby="sim-winner-title"><div class="winner-emblem" aria-hidden="true">♠</div><h2 id="sim-winner-title">Hand complete</h2><div id="sim-winner-summary"></div><button id="sim-winner-close" class="primary" autofocus>Continue</button></dialog>
+<div class="wrap pocket-app" id="simulation" hidden>
+<header class="game-top"><div><div id="simulation-home" class="brand-small brand-home">Pocket Poker</div><small>Simulation</small></div><button id="simulation-menu">Back</button></header>
+<p class="intro">Control every seat with visible cards. Explore street-by-street betting and Hand equity, then replay the same deal to compare your choices.</p>
+<div class="setup"><label for="player-count">Players</label><select id="player-count"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option><option>7</option><option>8</option></select><button id="shuffle">New Deal</button><label class="check"><input id="betting-mode" type="checkbox" checked>Demo betting</label></div>
+<details class="panel"><summary>Player names &amp; positions</summary><div id="name-editor" class="name-editor"></div><p class="minor">Seats stay clockwise. The button starts at Seat 1 for each independent deal.</p></details>
+<div id="sim-table-start"></div>
+<section id="sim-community" class="mp-board" aria-label="Simulation community cards"><div class="pot-strip"><strong id="sim-pot">Pot 3</strong><span id="stage"></span></div><div id="boards"></div></section>
+<section id="players" class="players mp-oval large-table" aria-label="Clockwise simulation seats"></section>
+<p id="table-foot" class="minor"></p>
+<div class="notice" id="notice" role="status" aria-live="polite"></div>
+<div class="action-row"><button id="sim-deal" class="primary">Deal Hole Cards</button><button id="twice">Run It Twice</button></div>
+<section class="turn-box" id="betting-panel"></section>
+<section id="sim-equity-status" class="minor" aria-live="polite"></section>
+<section class="hand-summary"><h2>Player details</h2><div id="results"></div></section>
+<details id="study-tools" class="panel"><summary>Study Tools</summary>
+<div id="simulation-dock" hidden><div class="action-row"><button id="next">Next Card</button><button id="play">Play</button></div><label class="speed" for="speed">Speed <select id="speed"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select></label><button id="replay">Replay Same Deck</button><label class="check"><input id="reduce" type="checkbox">Reduced motion</label></div>
+<section class="panel guides"><h2>Guided walkthroughs</h2><p class="minor">These fixed examples switch to deal-only mode. Enable Demo betting again for a fresh 20-chip hand.</p><div class="tabs" role="tablist" aria-label="Walkthrough"><button role="tab" aria-selected="true" data-guide="normal">One board</button><button role="tab" aria-selected="false" data-guide="twice">Two runs after flop</button><button role="tab" aria-selected="false" data-guide="tie">A shared winner</button><button role="tab" aria-selected="false" data-guide="boundary">Wrong moment</button></div><div id="guide" role="tabpanel"></div></section>
+
+<details><summary>Card-by-card deal record</summary><ol id="log" class="log"></ol></details>
+<h3>Deck order · top to bottom</h3><div class="stats" id="stats"></div><p class="minor">Future deck order is visible for study but is ignored by Hand equity.</p><div id="deck-grid" class="deck-grid"></div><details><summary>Burn cards</summary><div id="burn-list"></div></details>
+</details>
+<section id="sim-history" class="public-history" aria-label="Betting history"></section>
+<div id="sim-celebration"></div>
+<footer>Independent 20-chip deals · 1/2 blinds · fixed starting button. Replay preserves the original deck order. Pass &amp; Play saves stay separate.</footer>
+</div>
+
+<script id="poker-engine" src="/scripts/poker.js"></script>
+
+<script id="equity-bars" src="/scripts/equity-bars.js"></script>
+<script id="equity-engine" src="/scripts/equity.js"></script>
+<script id="poker-session" src="/scripts/session.js"></script>
+<script src="/scripts/random.js"></script>
+<script src="/scripts/simulation.js"></script>
+
+
+<script id="poker-routes" src="/scripts/routes.js"></script>
+<script src="/scripts/app.js"></script>
+
+
+
+
+
+</body></html>

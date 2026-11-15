@@ -1,7 +1,28 @@
 [build]
-  publish = "prototypes"
+  publish = "web"
 
 [[redirects]]
-  from = "/"
-  to = "/dealing-prototype.html"
+  from = "/dealing-prototype.html"
+  to = "/"
+  status = 301
+
+# Existing assets shadow these rules; missing assets must not receive app HTML.
+[[redirects]]
+  from = "/scripts/*"
+  to = "/404.html"
+  status = 404
+
+[[redirects]]
+  from = "/styles/*"
+  to = "/404.html"
+  status = 404
+
+[[redirects]]
+  from = "/fonts/*"
+  to = "/404.html"
+  status = 404
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
   status = 200

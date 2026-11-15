@@ -1,128 +1,82 @@
 # Pocket Poker
 
-A phone-focused Texas Hold’em game for **2–8 players on one shared device**, plus an open-card simulator for studying how hands are dealt. It uses play chips and runs entirely in the browser, with no account, backend, or runtime dependencies.
+Texas Hold’em for **2–8 friends sharing one phone**, with open-card Simulation and an Equity calculator for study. Play with small chip stacks, pass the phone for private turns, and keep playing across hands. No accounts, backend, or online multiplayer.
 
-**Website redesign:** `main` includes direct Play/Continue, reachable private controls, and same-group Rematch. Netlify deployment status is tracked separately. The Godot Android version is separate on `codex/godot-android`; this website does not include online multiplayer.
+[Play Pocket Poker](https://pocket-poker.netlify.app/) · [Play guide](docs/play-guide.md) · [Development and deployment](docs/development.md)
 
-![Community board and winning seat](.scratch/pass-and-play/board-winner-glow.png)
+## Modes
 
-## Features
+- **Pass & Play:** 20 chips per player, fixed 1/2 blinds, private Peek, betting confirmations, side pots, rotating positions, saved games, and unanimous run-it-twice voting. Results offer Next hand or a same-group Rematch.
+- **Simulation:** visible hole cards, independent 20-chip deals, manual betting for every seat, street pauses, replay of the same deck, and optional per-card Study Tools.
+- **Equity calculator:** enter two known cards for each player and one community board. Preflop uses 20,000 sampled boards; postflop enumerates every possible remaining board.
 
-### Pass & Play
+Simulation and public all-in multiplayer seats show equity bars, with separate A/B bars for two runouts. The calculator shows bars beside each hand. Percentages remain readable: red → amber → green shows absolute equity; zero has an empty gray bar. Estimates use ≈. Equity includes split-pot shares and does not predict actual side-pot payouts.
 
-- Enter player names in fixed clockwise seats. Each player starts with 20 chips; blinds stay at 1/2.
-- Pass the device at each turn. Cards stay concealed until the player holds Peek or uses the optional tap-to-reveal setting.
-- Check, call, fold, bet, raise, or go all-in. A whole-chip Min–Max slider sets the bet, with immediate Check and confirmation for Fold, Call, Bet/Raise, and All-in.
-- Keep chips across hands, rotate the dealer and blinds, handle side pots and tied winners, and sit out players who run out of chips.
-- Pause before each street so everyone is ready, then deal cards one by one.
-- Use unanimous run-it-twice voting after betting is closed against all-in opponents. Both boards use the same deck and share any already-dealt community cards.
-- See public hand categories during all-in runouts and results for each completed board. Public all-in hands finish automatically; ordinary private hands wait for Showdown. A fold win is immediate.
-- Keep the pot and community cards visible while scrolling. Read betting history grouped by street, and celebrate winners with a popup, confetti, and seat glow.
-- Continue the saved game directly from Opening, with private cards concealed.
-- Choose Next hand from the result dialog, or Rematch after a game ends. Rematch restores every original player to 20 chips after confirmation.
-
-Expand **Hand details**, then Peek to read optional hand guidance. It explains the current best five cards, kickers, and one-card straight or flush draws. It uses only the player's hole cards and the revealed board; it does not calculate equity or predict a winner.
-
-### Simulation
-
-Control every seat with visible hole cards, a compact clockwise table, sticky community cards, and the same confirmed slider bets as Pass & Play. Deal one street at a time, then inspect the hands before continuing. Each independent deal starts at 20 chips with 1/2 blinds.
-
-Seats show Hand equity; player details show Win/Tie and best-five cards. Preflop uses 20,000 samples; postflop is exact. Folded cards and dealt burns remain unavailable, while future deck order is ignored. Two runouts show separate A/B percentages. Hand equity compares one hypothetical equal pot; actual chip payouts still follow main/side-pot rules.
-
-Study Tools keeps per-card playback, speed, replay, deck/burn inspection, and guided examples. Every street pauses, including both runouts. Results and winner animations appear automatically when the hand finishes. Simulation stays in memory and does not change multiplayer saves.
-
-See the [play guide](prototypes/README.md) for detailed behavior.
-
-### Equity calculator
-
-Choose **Study → Equity calculator**. Enter two known cards for each of 2–8 players, then select Preflop, Flop, Turn, or River and fill that board stage. Each player row shows Equity, Win, and Tie, with the current hand category from the flop onward.
-
-Preflop samples 20,000 boards and labels the results **Estimated**. Flop, turn, and river enumerate all remaining boards and display **Exact** results. Calculations run in a Web Worker, with progress and cancellation. Edits discard old percentages, and Calculate again restarts cancelled or failed work.
-
-Card selection prevents duplicates. Removing entered cards through a stage/count change or Reset requires confirmation. Inputs survive mode changes during the visit but reset on page reload. Multiplayer saves are separate. This calculator assumes one equal pot and known hole cards; it does not support ranges, unknown hands, side pots, or two-board equity.
+Shuffle preparation, card dealing, showdown reveals, winning-card emphasis, and ordered chip collection give feedback without controlling payouts. Dealing blocks scrolling and taps until the next pause. Reduced motion skips decorative travel and pulses; private Peek always reveals and conceals immediately.
 
 ## Run locally
 
-Install Python 3, then run from the repository root:
+Use Python 3 from the repository root:
 
 ```sh
-git clone https://github.com/gnaplds/pocket-poker.git
-cd pocket-poker
-python -m http.server 8765 --bind 127.0.0.1 --directory prototypes
+python tools/serve.py
 ```
 
-Open [Pocket Poker locally](http://127.0.0.1:8765/dealing-prototype.html) on the same computer. No package installation or build step is needed.
+Open [localhost:8765](http://127.0.0.1:8765/). No package installation or build step is needed. Use the local server rather than opening `index.html` as a file: routes and workers need HTTP.
 
-You can also open `prototypes/dealing-prototype.html` directly, but browser support for saving games from local files varies. A phone's `127.0.0.1` address points to the phone itself, not your computer.
+## Screens and URLs
 
-## Deploy on Netlify
+| URL | Screen |
+| --- | --- |
+| `/` | Opening: play, continue, or study |
+| `/new-game` | Player names and game settings |
+| `/play` | Current local Pass & Play game |
+| `/study` | Study-mode menu |
+| `/simulation` | Open-card Simulation |
+| `/equity` | Manual Equity calculator |
 
-1. In Netlify, add a project by importing an existing GitHub repository.
-2. Select `gnaplds/pocket-poker` and the `main` branch.
-3. Leave the base directory and build command empty. Set the publish directory to `prototypes` if it is not detected from `netlify.toml`.
-4. Deploy, then open the assigned Netlify URL. The root path serves the game directly.
-
-The included `netlify.toml` publishes the static app and rewrites `/` to `/dealing-prototype.html`. No environment variables, server, or package install are needed. The published folder also contains the play guide and tests; planning records outside it are available only through the GitHub repository. Deploying `main` includes the website redesign. Branch previews can be reviewed separately.
-
-See Netlify's [file-based configuration](https://docs.netlify.com/build/configure-builds/file-based-configuration/) and [rewrite documentation](https://docs.netlify.com/manage/routing/redirects/rewrites-proxies/) for these settings.
-
-## How to play
-
-1. Select **Play together** (or **New game** when a save exists), choose 2–8 players, and enter names clockwise from the bottom seat.
-2. Choose hold-to-peek or tap-to-reveal, and whether everyone gets hand guidance.
-3. Start the game. Pass the phone to the named player, then tap **I'm ready**.
-4. View your cards privately and choose an action. Check acts immediately; other bets and Fold require confirmation. Pass the phone only after the cards hide.
-5. When betting ends, wait until everyone is ready before dealing the next street.
-6. Use **Showdown** when prompted. Choose **Next hand** in the winner dialog, or **Review hand** to inspect the result. At game end, **Rematch** confirms a fresh 20-chip start for the same full group.
+A URL opens a screen, not a shared game. Opening `/play` resumes a valid local save with private cards concealed; without one it opens setup. Study entries survive screen changes in the same visit but reset on reload. The former `/dealing-prototype.html` entry redirects to `/`.
 
 ## Saves and privacy
 
-One multiplayer game is stored in this browser's local storage. There is no cloud backup or cross-device sync. Clearing site data deletes the save. A new domain, browser, or device has a separate save; your localhost game will not automatically appear on Netlify.
+One multiplayer game is saved in this browser's local storage. Changing paths on the same domain preserves it; a different domain, browser, or device has a separate save. Clearing site data deletes it. Use one active tab per game.
 
-The interface conceals other players' cards during private play, including on handoff and app interruption. This is a shared-device game among trusted players: inspecting browser storage or developer tools can reveal the game state. Use one active tab per game.
+Save & Leave and in-app browser Back confirm before leaving Pass & Play. Reloading or closing a tab relies on automatic saves; a custom leave dialog cannot be guaranteed outside the app. Private cards hide on handoff, focus loss, and resume. Already-public all-in cards stay public.
 
-The app makes no outgoing network requests during play. A hosted page needs a connection to load; offline reload and installation as a PWA are not implemented.
+This is a shared-device game among trusted players. Browser storage and developer tools can reveal game state. Hosted assets need a connection to load; offline reload, a service worker, and PWA installation are not implemented. There are no third-party runtime requests.
 
-## Tests
+## Code and checks
 
-Use Node.js 26 or later. No npm dependencies are required.
+The website uses plain HTML, CSS, JavaScript, and a locally hosted Inter font. One entry page loads focused source files; no framework or bundler is required.
 
 ```sh
-node --test --test-isolation=none prototypes/dealing-prototype.test.cjs prototypes/dealing-prototype.ui.test.cjs prototypes/equity-prototype.test.cjs
+node --test --test-isolation=none tests/*.test.cjs
 ```
 
-The current suite has **89 tests** covering card order, hand rankings, betting rules, side pots, tied payouts, 2–8 players, two-board runouts, saved-game recovery, private views, and UI event handling. UI tests use a DOM boundary double; they do not replace browser or physical-device checks.
-
-The redesign browser check covered a complete two-player hand, concealed resume, private guidance, manual Showdown, and Next hand. Final eight-player/two-board visual checks, short-screen checks after the last sizing adjustment, physical Android touch behavior, and screen-reader testing remain pending. See the [validation record](.scratch/web-ux-refresh/validation.md). The evaluator is a JavaScript reference implementation and has not been exhaustively checked against every possible hand or betting sequence.
-
-## Repository layout
+Use Node.js 26 or later. Tests cover poker rules, privacy, saves, workers, equity, motion boundaries, and navigation. Browser and real-phone checks remain separate; see [validation](docs/validation.md).
 
 | Path | Purpose |
 | --- | --- |
-| `prototypes/dealing-prototype.html` | Self-contained app: poker engine, session logic, and all three modes |
-| `prototypes/dealing-prototype.test.cjs` | Engine and session tests |
-| `prototypes/dealing-prototype.ui.test.cjs` | UI event and privacy tests |
-| `prototypes/fonts/` | Locally hosted Inter font and its SIL Open Font License |
-| `prototypes/README.md` | Detailed play guide and validation history |
+| `web/index.html` | App entry and static screen/dialog markup |
+| `web/scripts/` | Poker rules, sessions, screens, routes, equity, and motion |
+| `web/styles/app.css` | Shared styles, preserving cascade order |
+| `web/fonts/` | Inter and its license |
+| `tests/` | Automated tests; not published to Netlify |
+| `tools/serve.py` | Local server with clean-route support |
+| `docs/` | Current play, development, and validation guides |
 | `GLOSSARY.md` | Poker and game terms |
-| `.scratch/` | Planning records, rules research, and prototype screenshots |
+| `.scratch/` | Historical plans, experiments, and research |
 
-Earlier planning documents describe earlier versions. This README and the app describe the latest behavior.
+The Godot Android rewrite stays on `codex/godot-android`. This website cleanup does not merge or change it. Historical plans may describe superseded behavior; current guides describe this branch. Production changes only after an approved merge/push to `main` and a successful Netlify deployment.
 
-## Planned work
+## Deployment
 
-- Physical-phone testing of the website redesign; native Android work stays on its separate branch.
-- Further accessibility and small-screen checks.
-- Detailed Simulation and Equity layout updates after the social-play redesign is reviewed.
+Netlify publishes `web/` with no build command or environment variables. `netlify.toml` defines old-link redirection, missing-asset handling, and the app route fallback. Tests and guides remain in GitHub rather than the public site. See [deployment steps](docs/development.md#deploy-on-netlify).
 
-## References
+## References and license
 
-The initial calculator idea came from [PokerCoaching](https://pokercoaching.com/odds-calculator/) and the [poker.net demo](https://poker-calculator.johnbelthoff.com/). The app uses its own JavaScript evaluator; it does not embed or depend on [poker.net](https://github.com/JBelthoff/poker.net).
+The calculator idea drew from [PokerCoaching](https://pokercoaching.com/odds-calculator/) and the [poker.net demo](https://poker-calculator.johnbelthoff.com/). Pocket Poker uses its own JavaScript evaluator; it does not embed [poker.net](https://github.com/JBelthoff/poker.net). Earlier [rules research](.scratch/pass-and-play/research/continuing-game-rules.md) remains in the repository.
 
-Rules research and decisions are recorded in the [multiplayer plan](.scratch/pass-and-play/spec.md), [decision map](.scratch/pass-and-play/map.md), and [rules notes](.scratch/pass-and-play/research/continuing-game-rules.md).
+Project code and original documentation use the [MIT License](LICENSE). Inter uses the [SIL Open Font License](web/fonts/Inter-LICENSE.txt). GT Maru is not bundled.
 
-## License
-
-Project code and original documentation are available under the [MIT License](LICENSE). Inter is distributed under its [SIL Open Font License](prototypes/fonts/Inter-LICENSE.txt). GT Maru is not bundled; Inter remains the temporary font.
-
-The retained reference screenshot `.scratch/mobile-calculator/research/pokernet-demo-river.png` depicts the third-party poker.net demo. It is research material, is not covered by this project's MIT grant, and retains its original rights. External projects, names, and linked materials remain the property of their respective owners.
+The research screenshot `.scratch/mobile-calculator/research/pokernet-demo-river.png` depicts third-party content and is not covered by this project's MIT grant. External projects, names, and materials retain their original rights.

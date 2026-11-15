@@ -5,8 +5,8 @@ const vm=require('node:vm');
 const {webcrypto}=require('node:crypto');
 
 // A DOM/animation boundary double: checks event wiring, not browser layout or touch input.
-function page(saved=null,workerAvailable=true,saveFails=false){
-  const html=fs.readFileSync(__dirname+'/dealing-prototype.html','utf8');
+function page(saved=null,workerAvailable=true,saveFails=false,initialPath='/'){
+  const html=require('./load-page.cjs')();
   let reloads=0;
   const ids=new Map(),workers=[],flights=[],scrolls=[],windowEvents={},documentEvents={};
   class Element {
@@ -26,7 +26,7 @@ function page(saved=null,workerAvailable=true,saveFails=false){
     setAttribute(){}
     querySelectorAll(selector){const key=selector.match(/^\[data-([\w-]+)\]$/)?.[1];return key?(this.children||[]).filter(el=>key in el.dataset):[];}
     querySelector(){return null;}
-    insertAdjacentHTML(){}
+    insertAdjacentHTML(position,markup){this.markup=position==='afterbegin'?markup+this.innerHTML:this.innerHTML+markup;}
     append(){}
     remove(){this.removed=true;}
     focus(){}
@@ -48,16 +48,15 @@ function page(saved=null,workerAvailable=true,saveFails=false){
   document.body.innerHTML=html;
   for(const [,id,body] of html.matchAll(/<script id="([^"]+)">([\s\S]*?)<\/script>/g))ids.get(id).textContent=body;
   ids.get('speed').value='1';ids.get('player-count').value='4';ids.get('betting-mode').checked=true;
-  const blobs=new Map();
-  const workerURL={createObjectURL(blob){const key='blob:'+blobs.size;blobs.set(key,blob);return key;},revokeObjectURL(key){blobs.delete(key);}};
-  class TestWorker{constructor(url){this.source=blobs.get(url);if(!workerAvailable)throw Error('Worker unavailable');workers.push(this);}postMessage(data){this.request=data;}terminate(){this.terminated=true;}}
-  const ctx=vm.createContext({Worker:TestWorker,Blob,URL:workerURL,document,crypto:webcrypto,matchMedia:()=>({matches:true}),localStorage:{getItem:()=>saved,setItem:(key,value)=>{if(saveFails)throw Error("Storage full");saved=value;}},window:{location:{reload(){reloads++;}},addEventListener:(type,fn)=>{(windowEvents[type]??=[]).push(fn);},scrollTo(options){scrolls.push({options,saved});}},setTimeout,clearTimeout});
+  const browser=require('./history.cjs')(initialPath,windowEvents);
+  class TestWorker{constructor(url){this.url=url;if(!workerAvailable)throw Error('Worker unavailable');workers.push(this);}postMessage(data){this.request=data;}terminate(){this.terminated=true;}}
+  const ctx=vm.createContext({Worker:TestWorker,Blob,URL,document,crypto:webcrypto,matchMedia:()=>({matches:true}),localStorage:{getItem:()=>saved,setItem:(key,value)=>{if(saveFails)throw Error("Storage full");saved=value;}},window:{history:browser.history,location:browser.location,addEventListener:(type,fn)=>{(windowEvents[type]??=[]).push(fn);},scrollTo(options){scrolls.push({options,saved});}},setTimeout,clearTimeout});
   for(const [,script] of html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g))vm.runInContext(script,ctx);
-  return {get reloads(){return reloads;},ids,workers,flights,scrolls,windowEvents,documentEvents,document,get saved(){return saved;}};
+  return {browser,get reloads(){return reloads;},ids,workers,flights,scrolls,windowEvents,documentEvents,document,get saved(){return saved;}};
 }
 
 function savedFlop(reveal='hold',guidance=true,situation='flop',cards='6h 2c 7h 3d 4s 8h 9c Kh'){
-  const html=fs.readFileSync(__dirname+'/dealing-prototype.html','utf8'),ctx=vm.createContext({});
+  const html=require('./load-page.cjs')(),ctx=vm.createContext({});
   for(const id of ['poker-engine','poker-session'])vm.runInContext(html.match(new RegExp('<script id="'+id+'">([\\s\\S]*?)</script>'))[1],ctx);
   const prefix=cards.split(' '),deck=[...prefix,...ctx.Poker.fullDeck().filter(c=>!prefix.includes(c))],M=ctx.Match;
   let s=M.start(['Alex','Blair'],deck,0,reveal,guidance);
@@ -372,10 +371,11 @@ test('Equity removal confirmation and worker failures keep the scenario editable
  ids.get('eq-reset').onclick();ids.get('eq-remove-confirm').onclick();assert.match(app.innerHTML,/data-eq-stage="3" aria-pressed="true"/);assert.doesNotMatch(app.innerHTML,/A of spades/);
 });
 
-test('the generated worker source runs the real evaluator and reports exact results',async()=>{
+test('the external worker runs the real evaluator and reports exact results',async()=>{
  const p=equityPage();p.stage(5);p.pick('p:0:0',['As','Ad']);p.pick('p:1:0',['Ks','Kd']);p.pick('b:0',['2c','3h','7d','9s','Jc']);
  const worker=p.workers.at(-1),messages=[],ctx=vm.createContext({crypto:webcrypto,postMessage:data=>messages.push(data)});
- vm.runInContext(await worker.source.text(),ctx);ctx.onmessage({data:worker.request});
+ ctx.importScripts=(...paths)=>paths.forEach(path=>vm.runInContext(fs.readFileSync(__dirname+'/../web'+path,'utf8'),ctx));
+ vm.runInContext(fs.readFileSync(__dirname+'/../web'+worker.url,'utf8'),ctx);ctx.onmessage({data:worker.request});
  const result=messages.at(-1);assert.equal(result.id,worker.request.id);assert.equal(result.result.players[0].equity,1);assert.equal(result.result.exact,true);
 });
 test('Equity resets after reload and cancels running work on mode exit without touching multiplayer saves',()=>{
@@ -515,15 +515,15 @@ test('multiplayer equity uses public hands only and ignores stale results after 
  const normal=page(savedFlop()),a=normal.ids.get('pocket-app');normal.ids.get('resume-game').onclick();assert.equal(normal.workers.length,0);
 });
 
-test('Save & Leave confirms before saving and reloading home',()=>{
+test('Save & Leave confirms before saving and returning home',()=>{
  const p=page(savedFlop()),{ids}=p,app=ids.get('pocket-app');
  ids.get('resume-game').onclick();
  ids.get('save-leave').onclick();assert.equal(ids.get('home-confirm').open,true);assert.equal(p.reloads,0);
  ids.get('home-cancel').onclick();assert.equal(ids.get('home-confirm').open,false);
- ids.get('save-leave').onclick();ids.get('home-save').onclick();assert.equal(p.reloads,1);assert.ok(p.saved);
+ ids.get('save-leave').onclick();ids.get('home-save').onclick();assert.equal(p.browser.location.pathname,'/');assert.equal(p.reloads,0);assert.ok(p.saved);
 });
 
- test('home reload is blocked when saving fails',()=>{
+ test('leaving home is blocked when saving fails',()=>{
  const p=page(savedFlop(),true,true),{ids}=p,app=ids.get('pocket-app');
  ids.get('resume-game').onclick();
  ids.get('save-leave').onclick();ids.get('home-save').onclick();assert.equal(p.reloads,0);
@@ -584,7 +584,7 @@ test('Next hand from winner dialog starts exactly one hand and retains stacks',(
 });
 
 function finishedGroup(){
- const html=fs.readFileSync(__dirname+'/dealing-prototype.html','utf8'),ctx=vm.createContext({});
+ const html=require('./load-page.cjs')(),ctx=vm.createContext({});
  for(const id of ['poker-engine','poker-session'])vm.runInContext(html.match(new RegExp('<script id="'+id+'">([\\s\\S]*?)</script>'))[1],ctx);
  const M=ctx.Match,P=ctx.Poker,prefix='2c As 3d Ah 5c Jc 9s 7h 6c 4d 8c Qs'.split(' '),deck=[...prefix,...P.fullDeck().filter(c=>!prefix.includes(c))];
  let s=M.start(['Alex','Blair','Casey'],deck,1,'tap',false);
@@ -636,4 +636,27 @@ test('eight long-named seats use the same private controls and finish a fold han
  assert.equal((app.innerHTML.match(/aria-label="Seat \d:/g)||[]).length,8);
  assert.doesNotMatch(app.innerHTML,/public-holes|You have/);
  const before=p.saved;ids.get('winner-review').onclick();assert.equal(p.saved,before);
+});
+
+test('direct routes select screens, normalize paths and preserve unreadable saves',()=>{
+ for(const [path,text] of [['/new-game','Your table'],['/study','Room to explore'],['/equity/','Equity calculator'],['/missing','Page not found']]){
+  const p=page(null,true,false,path);assert.match(p.ids.get('pocket-app').innerHTML,new RegExp(text));assert.equal(p.browser.location.pathname,path.replace(/\/$/,'')||'/');
+ }
+ const sim=page(null,true,false,'/simulation');assert.equal(sim.ids.get('simulation').hidden,false);
+ for(const save of [null,'broken save']){const p=page(save,true,false,'/play');assert.equal(p.browser.location.pathname,'/new-game');assert.match(p.ids.get('pocket-app').innerHTML,/No valid saved game/);assert.equal(p.saved,save);}
+ const old=page(null,true,false,'/dealing-prototype.html');assert.equal(old.browser.location.pathname,'/');
+});
+test('direct play restores private handoffs and keeps all-in cards public',()=>{
+ const p=page(savedFlop(),true,false,'/play');assert.match(p.ids.get('pocket-app').innerHTML,/Pass to/);assert.doesNotMatch(p.ids.get('pocket-app').innerHTML,/id="peek-button"/);
+ const publicGame=page(savedFlop('hold',true,'allin'),true,false,'/play');assert.match(publicGame.ids.get('pocket-app').innerHTML,/Hole cards are public/);
+});
+test('browser Back cancel retains game entry; confirm leaves; Forward resumes concealed',async()=>{
+ const p=page(savedFlop()),{ids,browser}=p;ids.get('resume-game').onclick();assert.equal(browser.location.pathname,'/play');
+ browser.history.go(-1);await new Promise(setImmediate);assert.equal(browser.location.pathname,'/play');assert.equal(ids.get('home-confirm').open,true);
+ ids.get('home-cancel').onclick();assert.equal(browser.entries.length,2);assert.match(ids.get('pocket-app').innerHTML,/Pass to/);
+ browser.history.go(-1);await new Promise(setImmediate);ids.get('home-save').onclick();await new Promise(setImmediate);assert.equal(browser.location.pathname,'/');
+ browser.history.go(1);await new Promise(setImmediate);assert.equal(browser.location.pathname,'/play');assert.match(ids.get('pocket-app').innerHTML,/Pass to/);
+});
+test('browser Back cannot leave a game after a failed save',async()=>{
+ const p=page(savedFlop(),true,true);p.ids.get('resume-game').onclick();p.browser.history.go(-1);await new Promise(setImmediate);p.ids.get('home-save').onclick();await new Promise(setImmediate);assert.equal(p.browser.location.pathname,'/play');
 });

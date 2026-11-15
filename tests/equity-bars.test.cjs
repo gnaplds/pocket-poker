@@ -1,7 +1,7 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),vm=require('node:vm');
-function bars(reduced=false){const ctx=vm.createContext({matchMedia:()=>({matches:reduced})});vm.runInContext(fs.readFileSync(__dirname+'/dealing-prototype.html','utf8').match(/<script id="equity-bars">([\s\S]*?)<\/script>/)[1]+';globalThis.bars=EquityBars;',ctx);return ctx.bars;}
+function bars(reduced=false){const ctx=vm.createContext({matchMedia:()=>({matches:reduced})});vm.runInContext(require('./load-page.cjs')().match(/<script id="equity-bars">([\s\S]*?)<\/script>/)[1]+';globalThis.bars=EquityBars;',ctx);return ctx.bars;}
 test('equity distinguishes zero, tiny positives, estimates and unavailable values',()=>{
  const b=bars();assert.match(b.html(0),/aria-valuenow="0"/);assert.match(b.html(0),/background-color:#929b96/);
  assert.match(b.html(.00001),/&lt;0.1%/);assert.doesNotMatch(b.html(.00001),/background-color:#929b96/);

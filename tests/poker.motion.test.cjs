@@ -2,7 +2,7 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const {test}=require('node:test');
 test('motion cancellation, dealing locks and winning-card roles',async()=>{
- const html=fs.readFileSync(__dirname+'/dealing-prototype.html','utf8');
+ const html=require('./load-page.cjs')();
  let reduced=false,opened=0;
  const context={URLSearchParams,location:{search:'?variant=effects'},matchMedia:()=>({matches:reduced}),document:{getElementById:()=>null,addEventListener(){},querySelector:()=>null,querySelectorAll:()=>[]},window:{addEventListener(){}},setTimeout,clearTimeout};
  vm.createContext(context);vm.runInContext(html.match(/<script id="poker-motion">([\s\S]*?)<\/script>/)[1]+';globalThis.fx=FX;',context);
@@ -32,13 +32,13 @@ test('motion cancellation, dealing locks and winning-card roles',async()=>{
 });
 
 test('payout groups preserve pot and board order, ties and zero-share filtering',()=>{
- const html=fs.readFileSync(__dirname+'/dealing-prototype.html','utf8'),ctx={document:{addEventListener(){}},window:{addEventListener(){}}};vm.createContext(ctx);
+ const html=require('./load-page.cjs')(),ctx={document:{addEventListener(){}},window:{addEventListener(){}}};vm.createContext(ctx);
  vm.runInContext(html.match(/<script id="poker-motion">([\s\S]*?)<\/script>/)[1]+';globalThis.fx=FX;',ctx);
  const pots=[{shares:[{awards:[{player:0,amount:5},{player:1,amount:5}]},{awards:[{player:2,amount:10}]}]},{shares:[{awards:[{player:1,amount:3},{player:2,amount:0}]},{awards:[{player:0,amount:3}]}]}];
  assert.deepEqual(JSON.parse(JSON.stringify(ctx.fx.payoutGroups(pots))),[[{player:0,amount:5},{player:1,amount:5}],[{player:2,amount:10}],[{player:1,amount:3}],[{player:0,amount:3}]]);
 });
 test('public reveal skips folded/already-public cards and restores visible cards on interruption',()=>{
- const html=fs.readFileSync(__dirname+'/dealing-prototype.html','utf8');let animated=0;
+ const html=require('./load-page.cjs')();let animated=0;
  const make=()=>({style:{},classList:{add(){}},setAttribute(){},removeAttribute(){},append(){},remove(){},cloneNode:make,getBoundingClientRect:()=>({left:0,top:0,width:32,height:44}),animate(){animated++;return {finished:new Promise(()=>{}),cancel(){}};}});
  const cards=new Map(['mp-hole-0-0','mp-hole-0-1','mp-hole-1-0','mp-hole-1-1','mp-hole-2-0','mp-hole-2-1'].map(id=>[id,make()]));
  const ctx={matchMedia:()=>({matches:false}),document:{getElementById:id=>cards.get(id),createElement:make,body:{append(){}},addEventListener(){}},window:{addEventListener(){}},setTimeout,clearTimeout};vm.createContext(ctx);vm.runInContext(html.match(/<script id="poker-motion">([\s\S]*?)<\/script>/)[1]+';globalThis.fx=FX;',ctx);
@@ -46,7 +46,7 @@ test('public reveal skips folded/already-public cards and restores visible cards
  assert.equal(animated,2);assert.equal(cards.get('mp-hole-0-0').style.visibility,'hidden');ctx.fx.clear();assert.notEqual(cards.get('mp-hole-0-0').style.visibility,'hidden');
 });
 test('collection is capped at 1500 ms and cancellation suppresses the pending result',()=>{
- const html=fs.readFileSync(__dirname+'/dealing-prototype.html','utf8');const timers=[];let opened=0;
+ const html=require('./load-page.cjs')();const timers=[];let opened=0;
  const ctx={matchMedia:()=>({matches:false}),document:{getElementById:()=>null,querySelector:()=>null,querySelectorAll:()=>[],addEventListener(){}},window:{addEventListener(){}},setTimeout:(fn,delay)=>{timers.push({fn,delay});return timers.length;},clearTimeout(){}};
  vm.createContext(ctx);vm.runInContext(html.match(/<script id="poker-motion">([\s\S]*?)<\/script>/)[1]+';globalThis.fx=FX;',ctx);
  const pots=Array.from({length:8},()=>({shares:[{awards:[{player:0,amount:1}]},{awards:[{player:1,amount:1}]}]}));

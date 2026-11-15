@@ -1,5 +1,5 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
-const html=fs.readFileSync(__dirname+'/dealing-prototype.html','utf8'),ctx=vm.createContext({});
+const html=require('./load-page.cjs')(),ctx=vm.createContext({});
 for(const id of ['poker-engine','equity-engine']){const script=html.match(new RegExp('<script id="'+id+'">([\\s\\S]*?)</script>'));if(script)vm.runInContext(script[1],ctx);}
 const E=ctx.Equity,plain=x=>JSON.parse(JSON.stringify(x));
 const finish=input=>[...E.calculate(input)].at(-1);

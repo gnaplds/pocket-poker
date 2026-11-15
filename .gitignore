@@ -4,4 +4,6 @@ node_modules/
 .env
 .env.*
 *.log
-prototypes/.layout-check.html
+web/.layout-check.html
+
+__pycache__/

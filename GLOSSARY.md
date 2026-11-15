@@ -1,4 +1,4 @@
-# Poker Mobile
+# Pocket Poker
 
 Terms used for the Texas Hold’em simulator and shared-phone multiplayer game.
 
