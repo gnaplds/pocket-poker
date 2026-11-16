@@ -124,3 +124,5 @@ body[data-effects="false"] .winning-caption{display:none}
 .public-flip-rotor{position:absolute;inset:0;transform-style:preserve-3d}
 .public-flip .card{position:absolute;inset:0;width:100%;height:100%;margin:0;backface-visibility:hidden}
 .public-flip-face{transform:rotateY(180deg)}
+
+.home-credit{text-align:center;padding:12px 0 4px}.study-guide{margin-top:32px;padding-top:20px;border-top:1px solid #c6d3c3}.study-guide p{font-size:14px;color:#53695e}
