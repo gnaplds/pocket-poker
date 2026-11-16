@@ -10,7 +10,7 @@ const EquityBars=(()=>{
   function update(el,markup){
     const old=[...el.querySelectorAll('.equity-fill')].map(fill=>({valid:fill.dataset.equityValid==='true',width:fill.style.width,backgroundColor:fill.style.backgroundColor}));
     el.innerHTML=markup;
-    if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+    if(Preferences.reduced())return;
     el.querySelectorAll('.equity-fill').forEach((fill,i)=>{
       if(old[i]?.valid&&fill.dataset.equityValid==='true')fill.animate([{width:old[i].width,backgroundColor:old[i].backgroundColor},{width:fill.style.width,backgroundColor:fill.style.backgroundColor}],{duration,easing:'ease-in-out'});
     });

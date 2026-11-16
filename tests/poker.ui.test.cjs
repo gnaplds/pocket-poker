@@ -5,7 +5,7 @@ const vm=require('node:vm');
 const {webcrypto}=require('node:crypto');
 
 // A DOM/animation boundary double: checks event wiring, not browser layout or touch input.
-function page(saved=null,workerAvailable=true,saveFails=false,initialPath='/'){
+function page(saved=null,workerAvailable=true,saveFails=false,initialPath='/',preferences=null){
   const html=require('./load-page.cjs')();
   let reloads=0;
   const ids=new Map(),workers=[],flights=[],scrolls=[],windowEvents={},documentEvents={};
@@ -50,9 +50,10 @@ function page(saved=null,workerAvailable=true,saveFails=false,initialPath='/'){
   ids.get('speed').value='1';ids.get('player-count').value='4';ids.get('betting-mode').checked=true;
   const browser=require('./history.cjs')(initialPath,windowEvents);
   class TestWorker{constructor(url){this.url=url;if(!workerAvailable)throw Error('Worker unavailable');workers.push(this);}postMessage(data){this.request=data;}terminate(){this.terminated=true;}}
-  const ctx=vm.createContext({Worker:TestWorker,Blob,URL,document,crypto:webcrypto,matchMedia:()=>({matches:true}),localStorage:{getItem:()=>saved,setItem:(key,value)=>{if(saveFails)throw Error("Storage full");saved=value;}},window:{history:browser.history,location:browser.location,addEventListener:(type,fn)=>{(windowEvents[type]??=[]).push(fn);},scrollTo(options){scrolls.push({options,saved});}},setTimeout,clearTimeout});
+  const media={matches:true,addEventListener(){}};
+  const ctx=vm.createContext({Worker:TestWorker,Blob,URL,document,crypto:webcrypto,matchMedia:()=>media,localStorage:{getItem:key=>key==='pocket-poker-preferences-v1'?preferences:saved,setItem:(key,value)=>{if(saveFails)throw Error("Storage full");if(key==='pocket-poker-preferences-v1')preferences=value;else saved=value;}},window:{history:browser.history,location:browser.location,addEventListener:(type,fn)=>{(windowEvents[type]??=[]).push(fn);},scrollTo(options){scrolls.push({options,saved});}},setTimeout,clearTimeout});
   for(const [,script] of html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g))vm.runInContext(script,ctx);
-  return {browser,get reloads(){return reloads;},ids,workers,flights,scrolls,windowEvents,documentEvents,document,get saved(){return saved;}};
+  return {browser,media,get preferences(){return preferences;},get reloads(){return reloads;},ids,workers,flights,scrolls,windowEvents,documentEvents,document,get saved(){return saved;}};
 }
 
 function savedFlop(reveal='hold',guidance=true,situation='flop',cards='6h 2c 7h 3d 4s 8h 9c Kh'){
@@ -176,7 +177,7 @@ test('Peek events show and remove all private guidance without replacing the hel
 });
 
 test('Simulation walkthroughs remain wired and leaving during card flight completes without a stuck control',async()=>{
-  const {ids,flights}=page();
+  const {ids,flights,media}=page();
   const app=ids.get('pocket-app');
   app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();
   app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='simulation').onclick();
@@ -184,7 +185,7 @@ test('Simulation walkthroughs remain wired and leaving during card flight comple
   await ids.get('guide-next').onclick();
   assert.equal(ids.get('remaining').textContent,44);
   assert.match(ids.get('notice').textContent,/Stage complete/);
-  ids.get('reduce').checked=false;
+  media.matches=false;
   const playback=ids.get('play').onclick();
   assert.equal(flights.length,1);
   ids.get('simulation-menu').onclick();
@@ -194,6 +195,7 @@ test('Simulation walkthroughs remain wired and leaving during card flight comple
   assert.equal(ids.get('shuffle').disabled,false);
   assert.ok(flights.every(el=>el.removed));
   app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='simulation').onclick();
+  media.matches=true;
   const shuffle=ids.get('shuffle').onclick();
   const confirmed=ids.get('sim-confirm-yes').onclick();
   ids.get('simulation-menu').onclick();
@@ -667,8 +669,41 @@ test('hand rankings opens from Study, supports direct links and returns to Study
  assert.equal((app.innerHTML.match(/<details class="ranking-entry">/g)||[]).length,10);
  assert.ok(app.innerHTML.indexOf('Royal flush')<app.innerHTML.indexOf('High card'));
  assert.equal((app.innerHTML.match(/aria-label="Example hand"/g)||[]).length,10);
+ assert.equal((app.innerHTML.match(/<summary>[\s\S]*?class="ranking-cards"[\s\S]*?<\/summary>/g)||[]).length,10,'card examples stay inside the always-visible summary');
  assert.match(app.innerHTML,/Suits have equal strength/);
  app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();
  assert.match(app.innerHTML,/Room to explore/);
  assert.match(page(null,true,false,'/hand-rankings').ids.get('pocket-app').innerHTML,/<h2>Hand rankings<\/h2>/);
+});
+
+test('settings conceals Peek without changing the active turn and saves game choices separately',()=>{
+ const p=page(savedFlop('tap')),ids=p.ids,app=ids.get('pocket-app');
+ ids.get('resume-game').onclick();app.querySelectorAll('[data-command]').find(e=>e.dataset.command==='ready').onclick();
+ ids.get('peek-button').onclick();const before=JSON.parse(p.saved);
+ ids.get('settings-open').onclick();assert.equal(ids.get('settings-panel').open,true);
+ assert.match(ids.get('private-cards').innerHTML,/Face-down/);
+ ids.get('setting-guidance').value='false';ids.get('setting-guidance').onchange();
+ const after=JSON.parse(p.saved);assert.deepEqual(after.game,before.game);assert.equal(after.actor,before.actor);assert.equal(after.guidance,false);assert.equal(p.preferences,null);
+ ids.get('settings-close').onclick();assert.equal(ids.get('settings-panel').open,false);assert.ok(ids.get('peek-button'));assert.match(app.innerHTML, /id="private-cards"[^>]*>.*Face-down/);
+ ids.get('peek-button').onclick();assert.doesNotMatch(ids.get('private-cards').innerHTML,/Face-down/);
+ ids.get('settings-open').onclick();p.windowEvents.blur.forEach(fn=>fn());assert.equal(ids.get('settings-panel').open,false);assert.match(app.innerHTML,/Pass to/);
+});
+
+test('device settings persist, share notation and defaults without overwriting a saved game',()=>{
+ const original=savedFlop(),p=page(original),ids=p.ids,app=ids.get('pocket-app');
+ ids.get('settings-open').onclick();
+ for(const [name,value] of [['tens','T'],['speed','2'],['motion','reduced'],['reveal','tap'],['guidance','false']]){ids.get('setting-'+name).value=value;ids.get('setting-'+name).onchange();}
+ assert.equal(p.saved,original);assert.equal(JSON.parse(p.preferences).speed,2);assert.equal(ids.get('speed').value,'2');assert.equal(ids.get('reduce').value,'reduced');
+ ids.get('settings-close').onclick();
+ app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='setup').onclick();assert.match(app.innerHTML,/value="tap" selected/);
+ const restored=page(original,true,false,'/hand-rankings',p.preferences);
+ assert.match(restored.ids.get('pocket-app').innerHTML,/aria-label="ten of spades"><span>T<\/span>/);
+});
+
+test('Back dismisses settings before leaving game; preference save failures are visible',async()=>{
+ const p=page(savedFlop()),ids=p.ids;ids.get('resume-game').onclick();ids.get('settings-open').onclick();
+ p.browser.history.go(-1);await new Promise(setImmediate);
+ assert.equal(p.browser.location.pathname,'/play');assert.equal(ids.get('settings-panel').open,false);assert.notEqual(ids.get('home-confirm').open,true);
+ p.browser.history.go(-1);await new Promise(setImmediate);assert.equal(ids.get('home-confirm').open,true);
+ const failed=page(null,true,true);failed.ids.get('settings-open').onclick();failed.ids.get('setting-tens').value='T';failed.ids.get('setting-tens').onchange();assert.match(failed.ids.get('settings-status').textContent,/could not be saved/);
 });

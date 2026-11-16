@@ -6,11 +6,13 @@ Texas Hold’em for **2–8 friends sharing one phone**, with open-card Simulati
 
 ![Pocket Poker home screen with Continue game, New game, and Study](docs/images/home-screen.png)
 
-## Modes
+## Play and study
 
 - **Pass & Play:** 20 chips per player, fixed 1/2 blinds, private Peek, betting confirmations, side pots, rotating positions, saved games, and unanimous run-it-twice voting. Results offer Next hand or a same-group Rematch.
 - **Simulation:** visible hole cards, independent 20-chip deals, manual betting for every seat, street pauses, replay of the same deck, and optional per-card Study Tools.
 - **Equity calculator:** enter two known cards for each player and one community board. Preflop uses 20,000 sampled boards; postflop enumerates every possible remaining board.
+
+**Hand rankings** lists hands from royal flush to high card. Five-card examples stay visible in a compact list; tap each entry to expand its explanation and tie rules.
 
 Simulation and public all-in multiplayer seats show equity bars, with separate A/B bars for two runouts. The calculator shows bars beside each hand. Percentages remain readable: red → amber → green shows absolute equity; zero has an empty gray bar. Estimates use ≈. Equity includes split-pot shares and does not predict actual side-pot payouts.
 
@@ -36,15 +38,21 @@ Open [localhost:8765](http://127.0.0.1:8765/). No package installation or build 
 | `/study` | Study-mode menu |
 | `/simulation` | Open-card Simulation |
 | `/equity` | Manual Equity calculator |
-| `/hand-rankings` | Expandable hand examples and tie rules |
+| `/hand-rankings` | Visible card examples with expandable explanations |
 
 A URL opens a screen, not a shared game. Opening `/play` resumes a valid local save with private cards concealed; without one it opens setup. Study entries survive screen changes in the same visit but reset on reload. The former `/dealing-prototype.html` entry redirects to `/`.
+
+## Settings
+
+Use the gear to choose 10 or T notation, reduced motion, and dealing speed across modes. Peek and guidance changes apply to the current multiplayer game; elsewhere they set defaults for new games. Defaults are 10 notation, Follow device for motion, and 1× dealing speed. Speed options range from 0.5× to 4× and keep readiness pauses. Changes apply immediately and save on this device; a warning appears if saving fails.
+
+Settings hides private cards and keeps Save & Leave inside the panel. Close, Escape, or in-app browser Back dismisses the panel first. Closing normally returns to the same turn with cards concealed.
 
 ## Saves and privacy
 
 One multiplayer game is saved in this browser's local storage. Changing paths on the same domain preserves it; a different domain, browser, or device has a separate save. Clearing site data deletes it. Use one active tab per game.
 
-Save & Leave and in-app browser Back confirm before leaving Pass & Play. Reloading or closing a tab relies on automatic saves; a custom leave dialog cannot be guaranteed outside the app. Private cards hide on handoff, focus loss, and resume. Already-public all-in cards stay public.
+Settings → Save & Leave and in-app browser Back confirm before leaving Pass & Play. Reloading or closing a tab relies on automatic saves; a custom leave dialog cannot be guaranteed outside the app. Private cards hide on handoff, focus loss, and resume. Already-public all-in cards stay public.
 
 This is a shared-device game among trusted players. Browser storage and developer tools can reveal game state. Hosted assets need a connection to load; offline reload, a service worker, and PWA installation are not implemented. There are no third-party runtime requests.
 

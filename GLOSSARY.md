@@ -160,3 +160,9 @@ The probability that a player is the sole winner on the final board.
 
 **Tie probability**:
 The probability that a player shares the winning hand with at least one other player. This is distinct from the fraction of the pot received.
+
+**Device preferences**:
+Display and dealing choices shared by the people using the same browser on a device. They do not change poker rules or the cards dealt.
+
+**New-game defaults**:
+The preferred card-viewing and hand-guidance choices offered when setting up a new game. They do not change a game already in progress.

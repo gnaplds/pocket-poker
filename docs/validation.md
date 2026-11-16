@@ -29,3 +29,10 @@ Local website cleanup, checked 2026-11-16 on `codex/web-cleanup`. This branch ha
 - Multi-tab save conflict handling is not supported; use one active game tab.
 
 The DOM and history test doubles verify behavior boundaries, not actual rendering or every browser timing edge case. Poker evaluation has not been exhaustively compared against all possible hands.
+
+## Settings — 17 November 2026
+
+- 105 JavaScript tests passed, including preference validation, storage failure feedback, current-game/default separation, same-turn Peek concealment, interruption, and Back dismissal.
+- Browser checks on a fresh local origin confirmed 10 → T card rendering with the accessible name “ten,” Escape/focus return, in-app Back dismissing settings without leaving, and a scrollable narrow panel without horizontal overflow.
+- Existing history and poker tests passed. No server routing changes were made.
+- Physical-phone lock/resume, touch controls, and a full multiplayer session at each speed remain manual acceptance checks. No deployment was performed.

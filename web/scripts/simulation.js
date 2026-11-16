@@ -1,8 +1,8 @@
 const $=id=>document.getElementById(id);
 const suitSymbols={c:'♣',d:'♦',h:'♥',s:'♠'};
 const suitNames={c:'clubs',d:'diamonds',h:'hearts',s:'spades'};
-const rankNames={T:'10',J:'J',Q:'Q',K:'K',A:'A'};
-const cardName=c=>(rankNames[c[0]]||c[0])+' of '+suitNames[c[1]];
+const rankNames={get T(){return Preferences.get().tens;},J:'J',Q:'Q',K:'K',A:'A'};
+const cardName=c=>(c[0]==='T'?'ten':rankNames[c[0]]||c[0])+' of '+suitNames[c[1]];
 const cardText=c=>(rankNames[c[0]]||c[0])+suitSymbols[c[1]];
 function card(c,extra='',id='') {
   return `<span ${id?`id="${id}"`:''} class="card ${c&&'dh'.includes(c[1])?'red':''} ${c?'':'empty'} ${extra}" ${c?`aria-label="${cardName(c)}"`:'aria-label="Empty card slot"'}>${c?`<span>${rankNames[c[0]]||c[0]}</span><span class="suit">${suitSymbols[c[1]]}</span>`:'·'}</span>`;
@@ -28,8 +28,9 @@ const safe=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','
 let state=Poker.create(4,shuffled(),true),playing=false,busy=false,guideBusy=false,playbackId=0;
 let notice='20 chips each; 1/2 blinds posted. Player 1 has the button. Deal the hole cards, then control the highlighted player.';
 let guideKey='normal',guideStep=0,simPending=null,simPendingCancel=null,simPaused=false,simCelebrated=false,simPrepared=false;
-$('reduce').checked=matchMedia('(prefers-reduced-motion: reduce)').matches;
-const speed=()=>Number($('speed').value);
+$('reduce').value=Preferences.get().motion;
+$('speed').value=String(Preferences.get().speed);
+const speed=()=>Preferences.get().speed;
 const waiting=()=>state.betting?.actor!==null&&state.betting?.actor!==undefined;
 const activeResult=board=>{
   if(![3,4,5].includes(board.length))return null;
@@ -119,12 +120,12 @@ function celebrateSimulation(){
   const winners=state.betting?state.betting.awards.flatMap((v,i)=>v?[i]:[]):[...new Set(state.boards.flatMap(b=>activeResult(b).winners))];
   $('sim-winner-summary').innerHTML='<p>'+winners.map(i=>safe(name(i))).join(' &amp; ')+(winners.length===1?' wins':' share the wins')+'</p>'+state.boards.map((_,j)=>simBoardVerdict(j)?'<h3>Board '+(j?'B':'A')+'</h3>'+simBoardVerdict(j):'').join('');
   FX.winner($('sim-winner'),{mode:'sim',pots:state.betting?Poker.potResults(state):[],showdown:!state.betting||state.betting.folded.filter(f=>!f).length>1});
-  if(!$('reduce').checked)$('sim-celebration').innerHTML=`<div class="hand-confetti" aria-hidden="true">${Array.from({length:36},(_,i)=>`<i style="--x:${i*37%100}%;--drift:${(i%7-3)*30}px;--delay:${i%8*.06}s;--spin:${180+i*29}deg;--color:${['#d4a52b','#4169e1','#c42f3d','#288362'][i%4]}"></i>`).join('')}</div>`;
+  if(!Preferences.reduced())$('sim-celebration').innerHTML=`<div class="hand-confetti" aria-hidden="true">${Array.from({length:36},(_,i)=>`<i style="--x:${i*37%100}%;--drift:${(i%7-3)*30}px;--delay:${i%8*.06}s;--spin:${180+i*29}deg;--color:${['#d4a52b','#4169e1','#c42f3d','#288362'][i%4]}"></i>`).join('')}</div>`;
 }
 $('sim-winner-close').onclick=()=>{$('sim-winner').close();$('sim-celebration').innerHTML='';$('shuffle').focus();};
 
 function render() {
-  $('simulation').dataset.reduced=String($('reduce').checked);$('sim-winner').style.animation=$('reduce').checked?'none':'';
+  $('simulation').dataset.reduced=String(Preferences.reduced());$('sim-winner').style.animation=Preferences.reduced()?'none':'';
   $('notice').textContent=notice;
   $('sim-pot').textContent=state.betting?'Pot '+state.betting.pot:'Deal-only mode';
   $('stage').innerHTML=communityMeta(state.boards,state.shared,state.stage);
@@ -163,7 +164,7 @@ function controls() {
 }
 function invalidateGuide(){guideStep=0;}
 async function animateCard(event,nextState) {
-  if($('reduce').checked) return;
+  if(Preferences.reduced()) return;
   const origin=$('deck-source').getBoundingClientRect();
   const target=event.kind==='hole'?$('hole-'+event.player+'-'+(nextState.hands[event.player].length-1)):event.kind==='burn'?$('burn-target'):$('board-'+event.board+'-'+(nextState.boards[event.board].length-1));
   const dest=target.getBoundingClientRect();
@@ -201,7 +202,7 @@ async function play(){
   if(playing){playing=false;playbackId++;notice='Pausing after the moving card lands.';$('notice').textContent=notice;controls();return;}
   if(simPaused||busy)return;
   const id=++playbackId;playing=true;controls();
-  const unlock=FX.lockDealing();try{while(playing&&id===playbackId&&!waiting()&&state.stage!=='complete') {await oneCard(); if(playing&&id===playbackId&&!$('reduce').checked)await new Promise(r=>setTimeout(r,120/speed()));}
+  const unlock=FX.lockDealing();try{while(playing&&id===playbackId&&!waiting()&&state.stage!=='complete') {await oneCard(); if(playing&&id===playbackId&&!Preferences.reduced())await new Promise(r=>setTimeout(r,120/speed()));}
   }finally{unlock();controls();}
 }
 function reset(players,deck,message){
@@ -213,7 +214,7 @@ async function shuffleNew(){
   if(busy||guideBusy)return;
   playing=false;playbackId++;busy=true;invalidateGuide();controls();
   notice='Shuffling…';$('notice').textContent=notice;
-  if(!$('reduce').checked){
+  if(!Preferences.reduced()){
     const r=$('deck-source').getBoundingClientRect();
     await Promise.all([-1,1].map(async sign=>{
       const el=document.createElement('div');el.className='shuffle-ghost';el.style.left=r.left+'px';el.style.top=r.top+'px';document.body.append(el);

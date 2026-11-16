@@ -22,7 +22,7 @@ Once no more betting is possible and all owed calls/folds are resolved, remainin
 
 ### Leaving and resuming
 
-**Save & Leave** returns to Opening after confirmation. Browser Back within the app uses the same confirmation. Cancel stays at the concealed game; a save failure blocks departure. **Continue game** or `/play` restores the local game with a fresh private handoff. Public all-in cards remain public. Reload/close cannot guarantee a custom confirmation, so the app saves completed actions automatically.
+**Settings → Save & Leave** returns to Opening after confirmation. Browser Back within the app uses the same confirmation. Cancel stays at the concealed game; a save failure blocks departure. **Continue game** or `/play` restores the local game with a fresh private handoff. Public all-in cards remain public. Reload/close cannot guarantee a custom confirmation, so the app saves completed actions automatically.
 
 ## Simulation
 
@@ -50,10 +50,18 @@ Hand equity does not predict actual chip awards from unequal stacks or side pots
 
 ## Motion and accessibility
 
-Dealing keeps the current deliberate pace and readiness pauses. Newly public eligible cards flip once; private Peek stays instant. Winning-card outlines, chip collection, and the result dialog do not determine payouts. Starting another hand cancels unfinished decorative effects. Reduced motion uses static feedback and skips decorative travel, pulses, and confetti.
+Dealing defaults to the deliberate 1× pace; changing speed keeps readiness pauses. Newly public eligible cards flip once; private Peek stays instant. Winning-card outlines, chip collection, and the result dialog do not determine payouts. Starting another hand cancels unfinished decorative effects. Reduced motion uses static feedback and skips decorative travel, pulses, and confetti.
 
 Use the game among trusted players, one tab at a time. Interface privacy does not hide game data from browser storage or developer tools.
 
 ## Hand rankings
 
-Choose Hand rankings from Study for ten examples, strongest first. Open any entries to compare explanations and tie rules. Back returns to Study.
+Choose Hand rankings from Study for ten examples, strongest first. Card examples stay visible. Open any entries to compare explanations and tie rules. Back returns to Study.
+
+## Settings
+
+Open the gear on Home, setup, or any mode. Choose **10 / T**, **Motion: Follow device / Reduced**, and **Dealing speed: 0.5× / 1× / 2× / 4×**. Simulation Study Tools uses the same motion and speed choices. Reduced motion skips animation waits; readiness pauses stay.
+
+In Pass & Play, **This game** changes card viewing and guidance for everyone in that saved game. Elsewhere, **New-game defaults** prefills setup and leaves existing saved games unchanged. Rematches retain their game settings.
+
+Changes apply immediately. A warning appears if they cannot be saved. Close, Escape, or browser Back within the app closes settings first. Private cards and guidance hide on opening; closing normally keeps the same turn and requires another Peek. If the app loses focus, the usual handoff and recovery rules apply. Settings is unavailable during dealing and while another dialog is open.

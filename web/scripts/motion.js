@@ -1,7 +1,7 @@
 const FX=(()=>{
  const TIME={shuffle:1200,chip:300,cue:200,winner:180,dealer:300,highlight:300,reveal:350,payout:250,collection:1500},MOVE='cubic-bezier(.77,0,.175,1)';
  const enhanced=true;let epoch=0,timers=[],animations=[],nodes=[],cleanups=[],abortShuffle=null;
- const reduced=()=>matchMedia('(prefers-reduced-motion: reduce)').matches||(!document.getElementById('simulation')?.hidden&&document.getElementById('reduce')?.checked);
+ const reduced=()=>Preferences.reduced();
  const on=()=>enhanced&&!reduced();
  function later(fn,delay){const id=epoch;timers.push(setTimeout(()=>{if(id===epoch)fn();},delay));}
  function clear(){epoch++;timers.forEach(clearTimeout);timers=[];animations.forEach(a=>a.cancel());animations=[];nodes.forEach(n=>n.remove());nodes=[];cleanups.splice(0).forEach(fn=>fn());abortShuffle?.();abortShuffle=null;}

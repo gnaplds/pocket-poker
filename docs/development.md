@@ -27,6 +27,7 @@ For phone testing on a trusted local network, use `--bind 0.0.0.0` and open the 
 | `web/scripts/simulation.js` | Shared card helpers and Simulation UI |
 | `web/scripts/app.js` | Opening, setup, Pass & Play, and calculator UI |
 | `web/scripts/routes.js` | URLs, history traversal, guarded departure |
+| `web/scripts/preferences.js` | Validated device settings and shared motion preference |
 | `web/scripts/motion.js` | Cancellable decorative effects and dealing lock |
 | `web/styles/app.css` | Existing styles in original cascade order |
 
@@ -59,3 +60,9 @@ The JavaScript suite covers rules, UI event wiring, actual worker evaluation, pr
 The legacy `/dealing-prototype.html` redirects to `/`. Missing files under `/scripts/`, `/styles/`, and `/fonts/` receive a 404 instead of app HTML. Other unknown paths load the app's Page not found view through the SPA fallback (HTTP 200). Existing static files take priority. These rules follow Netlify's [rewrite guidance](https://docs.netlify.com/manage/routing/redirects/rewrites-proxies/) and [redirect options](https://docs.netlify.com/manage/routing/redirects/redirect-options/).
 
 Only `web/` is published. Tests, current guides, historical `.scratch` files, and Godot work stay outside the public directory. No server-side environment variables or credentials are required. The separate Godot branch is not part of this deployment.
+
+## Settings storage and privacy
+
+`pocket-poker-preferences-v1` stores device notation, motion, speed, and new-game defaults separately from the existing multiplayer key. Invalid fields fall back to defaults. Failed writes retain in-memory choices with visible feedback. Current-game Peek and guidance still belong to the match save.
+
+Opening the native settings dialog calls Peek concealment only, not save/restore, so it does not convert the current turn to a handoff. Lifecycle interruption still uses normal conceal/recovery. The navigation guard dismisses an open settings panel before a guarded route change; no extra history entry is created. Navigation outside this document retains the existing browser limitation.

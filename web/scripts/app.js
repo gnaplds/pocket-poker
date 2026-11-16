@@ -1,15 +1,16 @@
 (()=>{
   const app=$('pocket-app'),storageKey='pocket-table-prototype-v1';
   // shortcut: one active tab owns the local save; add conflict handling before supporting concurrent tabs.
-  let screen='home',match=null,saved=null,saveError='',message='',pumpId=0,flight=null,setupCount=4,setupReveal='hold',setupGuidance=true,celebratedHand=0,pendingBet=null,detailsOpen=false,rematchPending=false;
+  let screen='home',match=null,saved=null,saveError='',message='',pumpId=0,flight=null,setupCount=4,setupReveal=Preferences.get().reveal,setupGuidance=Preferences.get().guidance,celebratedHand=0,pendingBet=null,detailsOpen=false,rematchPending=false;
   const setupNames=[...names];
   const back=(id='')=>`<span ${id?`id="${id}"`:''} class="card card-back" aria-label="Face-down card">◆</span>`;
   const brand=()=>'<span class="pocket-logo header-logo" aria-hidden="true"><span>♥</span><span>♠</span></span><span>Pocket Poker</span>';
-  const header=()=>`<div class="game-top screen-head"><div id="screen-home" class="brand-small brand-home">${brand()}</div><button data-nav="${['equity','rankings'].includes(screen)?'modes':'home'}">Back</button></div>`;
+  const gear=()=>'<button id="settings-open" aria-label="Settings" class="settings-gear">⚙</button>';
+  const header=()=>`<div class="game-top screen-head"><div id="screen-home" class="brand-small brand-home">${brand()}</div><div class="header-actions"><button data-nav="${['equity','rankings'].includes(screen)?'modes':'home'}">Back</button>${gear()}</div></div>`;
   try{saved=localStorage.getItem(storageKey);if(saved)Match.restore(saved);}catch(e){saveError='The saved game could not be loaded. It will not be replaced unless you start a new game.';}
   function rankingsHTML(){
     const hands=[["Royal flush", "As Ks Qs Js Ts", "Ace, king, queen, jack, and ten of one suit. This is the highest straight flush.", "All royal flushes are equal."], ["Straight flush", "9h 8h 7h 6h 5h", "Five consecutive cards of one suit.", "Compare the highest card. A five-high straight flush is the lowest."], ["Four of a kind", "Qc Qd Qh Qs Ac", "Four cards of the same rank, plus one kicker.", "Compare the four matching cards first, then the kicker."], ["Full house", "Kh Kd Kc 8s 8h", "Three cards of one rank and two of another.", "Compare the three matching cards first, then the pair."], ["Flush", "Ad Jd 9d 6d 2d", "Five cards of one suit, not all consecutive.", "Compare the highest card, then each lower card in order until one differs."], ["Straight", "8c 7d 6h 5s 4c", "Five consecutive cards, not all of one suit.", "Compare the highest card. A–2–3–4–5 is five-high; 10–J–Q–K–A is ace-high."], ["Three of a kind", "7c 7d 7s Ah Qc", "Three cards of the same rank and two kickers.", "Compare the three matching cards, then the higher kicker, then the lower kicker."], ["Two pair", "Jh Jc 4d 4s Ah", "Two cards of one rank, two of another, and one kicker.", "Compare the higher pair, then the lower pair, then the kicker."], ["One pair", "Tc Td As 8h 3c", "Two cards of the same rank and three kickers.", "Compare the pair, then the kickers from highest to lowest."], ["High card", "As Jd 9c 6h 3s", "No pair, straight, or flush. The highest card names the hand.", "Compare cards from highest to lowest until one differs."]];
-    return `${header()}<h2>Hand rankings</h2><p class="subtle">Strongest to weakest. Open a hand to see an example and how it compares.</p><div class="ranking-list">${hands.map(([name,cards,description,ties],i)=>`<details class="ranking-entry"><summary><span class="ranking-number">${i+1}</span> ${name}</summary><div class="ranking-body"><div class="ranking-cards" aria-label="Example hand">${cards.split(" ").map(c=>card(c)).join("")}</div><p>${description}</p><p><strong>Same category:</strong> ${ties} If all five cards have equal ranks, the hands tie.</p></div></details>`).join("")}</div><section class="study-guide"><h3>Remember</h3><p>Use your best five cards from the seven available. You may use both, one, or neither of your hole cards.</p><p>Suits have equal strength. An ace can be high or low in a straight, but cannot wrap around: Q–K–A–2–3 is not a straight.</p><p>Equal best five-card hands split the pot. A kicker is a card outside the matching group that can break a tie.</p></section>`;
+    return `${header()}<h2>Hand rankings</h2><p class="subtle">Strongest to weakest. Tap a hand to read its explanation and tie rules.</p><div class="ranking-list">${hands.map(([name,cards,description,ties],i)=>`<details class="ranking-entry"><summary><span class="ranking-number">${i+1}</span> ${name}<span class="ranking-cards" aria-label="Example hand">${cards.split(" ").map(c=>card(c)).join("")}</span></summary><div class="ranking-body"><p>${description}</p><p><strong>Same category:</strong> ${ties} If all five cards have equal ranks, the hands tie.</p></div></details>`).join("")}</div><section class="study-guide"><h3>Remember</h3><p>Use your best five cards from the seven available. You may use both, one, or neither of your hole cards.</p><p>Suits have equal strength. An ace can be high or low in a straight, but cannot wrap around: Q–K–A–2–3 is not a straight.</p><p>Equal best five-card hands split the pot. A kicker is a card outside the matching group that can break a tie.</p></section>`;
   }
   function persist(){
     if(!match)return;
@@ -20,6 +21,47 @@
   function conceal(){
     FX.clear();
     $('winner-popup').close();cancelRematch();cancelBet();detailsOpen=false;if(!match)return;stop();match=Match.restore(Match.save(match));persist();if(screen==='game')renderApp();
+  }
+  function closeSettings(focus=true){
+    if(!$('settings-panel').open)return;
+    $('settings-panel').close();document.documentElement.classList.remove('settings-open');
+    if(focus)(screen==='simulation'?$('simulation-settings'):$('settings-open'))?.focus({preventScroll:true});
+  }
+  function settingsStatus(){
+    $('settings-status').textContent=[Preferences.error,screen==='game'?saveError:''].filter(Boolean).join(' ');
+    $('sim-preferences-status').textContent=Preferences.error;
+  }
+  function settingsFields(){
+    const prefs=Preferences.get(),inGame=screen==='game'&&match;
+    const select=(id,label,value,options)=>`<label for="${id}">${label}</label><select id="${id}">${options.map(([v,text])=>`<option value="${v}" ${String(value)===String(v)?'selected':''}>${text}</option>`).join('')}</select>`;
+    $('settings-content').innerHTML='<h3>On this device</h3>'+select('setting-tens','Show tens as',prefs.tens,[['10','10'],['T','T']])+select('setting-motion','Motion',prefs.motion,[['device','Follow device'],['reduced','Reduced']])+select('setting-speed','Dealing speed',prefs.speed,[[.5,'0.5×'],[1,'1×'],[2,'2×'],[4,'4×']])+`<h3>${inGame?'This game':'New-game defaults'}</h3><p>${inGame?'These choices apply to everyone in this game.':'Used to prefill setup. Existing saved games stay unchanged.'}</p>`+select('setting-reveal','View your cards',inGame?match.reveal:prefs.reveal,[['hold','Hold to peek'],['tap','Tap to reveal']])+select('setting-guidance','Hand guidance · everyone',inGame?match.guidance:prefs.guidance,[[true,'On'],[false,'Off']]);
+    $('save-leave').hidden=!inGame;
+    for(const name of ['tens','motion','speed','reveal','guidance'])$('setting-'+name).onchange=()=>{
+      const raw=$('setting-'+name).value,value=name==='speed'?Number(raw):name==='guidance'?raw==='true':raw;
+      if(inGame&&['reveal','guidance'].includes(name)){match[name]=value;persist();renderApp();}
+      else Preferences.set(name,value);
+      settingsStatus();
+    };
+    settingsStatus();
+  }
+  function openSettings(){
+    if(document.querySelector('dialog[open]')||screen==='game'&&Match.view(match).phase==='dealing'||screen==='simulation'&&(busy||playing||guideBusy))return;
+    peek(false);FX.clear();
+    settingsFields();document.documentElement.classList.add('settings-open');$('settings-panel').showModal();
+  }
+  function syncPreferences(name){
+    const prefs=Preferences.get();
+    document.documentElement.dataset.reducedMotion=String(Preferences.reduced());
+    $('speed').value=String(prefs.speed);$('reduce').value=prefs.motion;
+    if(name==='reveal')setupReveal=prefs.reveal;
+    if(name==='guidance')setupGuidance=prefs.guidance;
+    if(name){
+      FX.clear();
+      const openRanks=[...app.querySelectorAll('.ranking-entry')].map(el=>el.open);
+      if(screen==='simulation')render();else renderApp();
+      app.querySelectorAll('.ranking-entry').forEach((el,i)=>el.open=!!openRanks[i]);
+    }
+    settingsStatus();
   }
   function showScreen(next){
     if(screen==='equity'){stopEquity();$('equity-picker').close();$('equity-confirm').close();eqSlot=null;eqPending=null;}
@@ -74,13 +116,13 @@
   }
   function gameHTML(v){
     const history=`<section class="public-history" aria-label="Betting history"><h2>Betting history</h2>${v.historyRounds.map(round=>`<section class="history-round"><h3>${safe(round.label)}</h3>${round.actions.length?`<ol>${round.actions.map(e=>`<li>${safe(v.seats[e.player].name)}: ${safe(e.text)}</li>`).join('')}</ol>`:'<p>No betting</p>'}</section>`).join('')}</section>`;
-    return `<div class="game-top"><div><div id="game-home" class="brand-small brand-home">${brand()}</div></div><button id="save-leave">Save &amp; Leave</button></div><section id="mp-community" class="mp-board" aria-label="Community cards"><div class="pot-strip"><strong>Pot ${v.pot}</strong>${communityMeta(v.boards,v.shared,v.settled?'complete':v.stage,v.hand)}</div>${v.boards.map((board,j)=>`<div class="board-line"><span class="board-name">${j?'B':'A'}</span><div class="board-cards">${Array.from({length:5},(_,i)=>card(board[i],i<v.shared?'shared':'',`mp-board-${j}-${i}`)).join('')}</div></div>${boardVerdict(v,j)}`).join('')}</section><div class="game-scroll" id="game-scroll" tabindex="0" aria-label="Table and betting history"><section class="mp-oval seats-${v.seats.length} ${v.seats.length>6?'large-table':''}" aria-label="Clockwise seats"><div class="mp-center">${back('mp-deck')}<span id="mp-burn" class="burn-holder" aria-label="Burn pile">${v.burns}</span><p>${v.remaining} in deck</p></div>${v.seats.map((p,i)=>`<div class="mp-seat${v.settled?(p.award>0?' seat-winner':' seat-loser'):''} action-${p.actionColor} ${i===v.actor?'acting':''} ${p.folded&&p.seated?'folded':''} ${p.seated?'':'out'}" style="${seatStyle(i,v.seats.length)}" aria-label="Seat ${i+1}: ${safe(p.name)}"><strong title="${safe(p.name)}">${safe(p.name)}</strong><small>${safe(p.position)}${!p.seated&&p.position!=='Out'?' · empty':''}</small>${i===v.button?'<span class="dealer" aria-label="Dealer button">D</span>':''}<div class="chips">${p.stack} chips</div><div class="mini-holes ${p.publicCards?'public-holes':''}">${[0,1].map(j=>p.publicCards?card(p.cards[j],'',`mp-hole-${i}-${j}`):p.cards.length>j?back(`mp-hole-${i}-${j}`):card(null,'',`mp-hole-${i}-${j}`)).join('')}</div>${p.categories.map((category,j)=>category?`<small class="seat-rank">${v.boards.length===2?(j?'B: ':'A: '):''}${safe(category)}</small>`:'').join('')}<small class="seat-note">${v.settled&&p.award>0?'Won '+p.award+' chips':p.seated&&!v.settled?[safe(p.lastAction),p.paid?p.paid+' in':''].filter(Boolean).join(' · '):''}</small><span id="mp-equity-${i}" class="mp-equity"></span></div>`).join('')}</section><div class="game-status" role="status">${safe(message|| (v.publicCards?(v.settled?'Shared showdown results':'Hole cards are public. The hand finishes after the final river.'):v.phase==='turn'?'Your cards hide as soon as you finish your action.':v.phase==='handoff'?'Pass the phone with all cards hidden.':'Shared table view'))}</div>${v.publicCards?'<p class="subtle">Hand equity uses public cards only and compares one equal pot, not side-pot payouts. ≈ means estimated.</p>':''}${v.phase==='result'?'':history}</div><section class="turn-box" aria-label="${v.phase==='result'?'Hand result':'Turn controls'}">${turnHTML(v)}</section>${v.phase==='result'?history:''}`;
+    return `<div class="game-top"><div><div id="game-home" class="brand-small brand-home">${brand()}</div></div>${gear()}</div><section id="mp-community" class="mp-board" aria-label="Community cards"><div class="pot-strip"><strong>Pot ${v.pot}</strong>${communityMeta(v.boards,v.shared,v.settled?'complete':v.stage,v.hand)}</div>${v.boards.map((board,j)=>`<div class="board-line"><span class="board-name">${j?'B':'A'}</span><div class="board-cards">${Array.from({length:5},(_,i)=>card(board[i],i<v.shared?'shared':'',`mp-board-${j}-${i}`)).join('')}</div></div>${boardVerdict(v,j)}`).join('')}</section><div class="game-scroll" id="game-scroll" tabindex="0" aria-label="Table and betting history"><section class="mp-oval seats-${v.seats.length} ${v.seats.length>6?'large-table':''}" aria-label="Clockwise seats"><div class="mp-center">${back('mp-deck')}<span id="mp-burn" class="burn-holder" aria-label="Burn pile">${v.burns}</span><p>${v.remaining} in deck</p></div>${v.seats.map((p,i)=>`<div class="mp-seat${v.settled?(p.award>0?' seat-winner':' seat-loser'):''} action-${p.actionColor} ${i===v.actor?'acting':''} ${p.folded&&p.seated?'folded':''} ${p.seated?'':'out'}" style="${seatStyle(i,v.seats.length)}" aria-label="Seat ${i+1}: ${safe(p.name)}"><strong title="${safe(p.name)}">${safe(p.name)}</strong><small>${safe(p.position)}${!p.seated&&p.position!=='Out'?' · empty':''}</small>${i===v.button?'<span class="dealer" aria-label="Dealer button">D</span>':''}<div class="chips">${p.stack} chips</div><div class="mini-holes ${p.publicCards?'public-holes':''}">${[0,1].map(j=>p.publicCards?card(p.cards[j],'',`mp-hole-${i}-${j}`):p.cards.length>j?back(`mp-hole-${i}-${j}`):card(null,'',`mp-hole-${i}-${j}`)).join('')}</div>${p.categories.map((category,j)=>category?`<small class="seat-rank">${v.boards.length===2?(j?'B: ':'A: '):''}${safe(category)}</small>`:'').join('')}<small class="seat-note">${v.settled&&p.award>0?'Won '+p.award+' chips':p.seated&&!v.settled?[safe(p.lastAction),p.paid?p.paid+' in':''].filter(Boolean).join(' · '):''}</small><span id="mp-equity-${i}" class="mp-equity"></span></div>`).join('')}</section><div class="game-status" role="status">${safe(message|| (v.publicCards?(v.settled?'Shared showdown results':'Hole cards are public. The hand finishes after the final river.'):v.phase==='turn'?'Your cards hide as soon as you finish your action.':v.phase==='handoff'?'Pass the phone with all cards hidden.':'Shared table view'))}</div>${v.publicCards?'<p class="subtle">Hand equity uses public cards only and compares one equal pot, not side-pot payouts. ≈ means estimated.</p>':''}${v.phase==='result'?'':history}</div><section class="turn-box" aria-label="${v.phase==='result'?'Hand result':'Turn controls'}">${turnHTML(v)}</section>${v.phase==='result'?history:''}`;
   }
   function renderApp(previous=null){
     const closedResults=[...app.querySelectorAll('.player-result')].map(el=>!el.open);
     const v=screen==='game'?Match.view(match):null;
     app.className='pocket-app'+(v?' game-screen'+(v.phase!=='result'?' game-active':'')+(v.phase==='turn'?' private-turn':''):'');
-    if(screen==='home')app.innerHTML=`<section class="opening"><div class="opening-art"><div class="pocket-logo" aria-hidden="true"><span>♥</span><span>♠</span></div></div><h1>Pocket Poker</h1><p>One phone.<br>A seat for everyone.</p><div class="opening-actions">${saved?'<button class="primary" id="resume-game">Continue game</button><button data-nav="setup">New game</button>':'<button class="primary" data-nav="setup">Play together</button>'}<button class="study-link" data-nav="modes">Study</button></div><small class="subtle">2–8 friends. Pass, peek, play.</small></section><footer class="home-credit subtle">Made by Gene Apiladas</footer>`;
+    if(screen==='home')app.innerHTML=`<div class="home-settings">${gear()}</div><section class="opening"><div class="opening-art"><div class="pocket-logo" aria-hidden="true"><span>♥</span><span>♠</span></div></div><h1>Pocket Poker</h1><p>One phone.<br>A seat for everyone.</p><div class="opening-actions">${saved?'<button class="primary" id="resume-game">Continue game</button><button data-nav="setup">New game</button>':'<button class="primary" data-nav="setup">Play together</button>'}<button class="study-link" data-nav="modes">Study</button></div><small class="subtle">2–8 friends. Pass, peek, play.</small></section><footer class="home-credit subtle">Made by Gene Apiladas</footer>`;
     else if(screen==='modes')app.innerHTML=`${header()}<h2>Room to explore</h2><p class="subtle">See how a hand unfolds, or put the odds to the test.</p><div class="mode-list"><button data-nav="simulation"><strong>Simulation</strong><small>Every card on the table. Deal, bet, and replay.</small></button><button data-nav="equity"><strong>Equity calculator</strong><small>Choose the cards. Compare each hand’s chances.</small></button><button data-nav="rankings"><strong>Hand rankings</strong><small>From royal flush to high card. Learn what beats what.</small></button></div><section class="study-guide" aria-labelledby="holdem-guide"><h3 id="holdem-guide">Texas Hold’em, simply</h3><p>Each player gets two private cards. Five community cards are shared by everyone: three on the flop, one on the turn, and one on the river.</p><p>Make your best five-card hand using any combination of your two cards and the board. You can use both, one, or neither of your private cards.</p><p>Players bet before the flop and after each stage. Win by having the best hand at showdown, or by being the last player who has not folded. Equal best hands split the pot.</p></section>`;
     else if(screen==='rankings')app.innerHTML=rankingsHTML();
     else if(screen==='notfound')app.innerHTML=`${header()}<h2>Page not found</h2><p>This address does not match a Pocket Poker screen.</p><button data-nav="home">Home</button>`;
@@ -104,16 +146,19 @@
     app.querySelectorAll('[data-rematch]').forEach(el=>el.onclick=requestRematch);
     if(saveError)app.insertAdjacentHTML('afterbegin',`<div class="save-warning" role="alert">${safe(saveError)}</div>`);
     if(message&&screen!=='game')app.insertAdjacentHTML('beforeend',`<p role="alert">${safe(message)}</p>`);
+    if($('settings-open'))$('settings-open').onclick=openSettings;
     app.querySelectorAll('[data-nav]').forEach(el=>el.onclick=()=>navigate(el.dataset.nav));
     if($('resume-game'))$('resume-game').onclick=()=>{try{match=Match.restore(saved);celebratedHand=match.phase==='result'?match.hand:0;navigate('game');}catch(e){message='This saved game is unreadable. You can start a new one to replace it.';renderApp();}};
     if($('match-setup')){
       const capture=()=>{setupNames.slice(0,setupCount).forEach((_,i)=>setupNames[i]=$('mp-name-'+i).value);setupReveal=$('mp-reveal').value;setupGuidance=$('mp-guidance').value==='on';};
+      $('match-setup').oninput=capture;
+      $('mp-reveal').onchange=$('mp-guidance').onchange=capture;
       $('mp-count').onchange=()=>{capture();setupCount=Number($('mp-count').value);renderApp();};
       $('match-setup').onsubmit=e=>{e.preventDefault();capture();let replace=!!saved;try{if(saved)replace=Match.view(Match.restore(saved)).winner===null;}catch(e){}if(replace)$('replace-game').showModal();else beginGame();};
     }
     if(screen==='equity')wireEquity();
     if(screen==='game'){
-      $('save-leave').onclick=confirmHome;
+
       syncPublicEquity(Match.view(match));
       app.querySelectorAll('[data-command]').forEach(el=>el.onclick=()=>{if(el.disabled)return;el.disabled=true;send({type:el.dataset.command,...(el.dataset.command==='nextHand'?{deck:shuffled()}:{})});});
       app.querySelectorAll('[data-vote]').forEach(el=>el.onclick=()=>send({type:'vote',twice:el.dataset.vote==='yes'}));
@@ -165,6 +210,7 @@
   }
   let leaveAction=null;
   function guardNavigation(commit){
+    if($('settings-panel').open){closeSettings();return;}
     if(screen==='game'&&match){conceal();leaveAction=commit;$('home-confirm').showModal();}
     else commit();
   }
@@ -336,13 +382,13 @@
   const DEAL_TIMING={card:850,shuffle:600,shuffleCycles:2};
   // Storyboard: bring table into view, shuffle a new deck, then land one card before the next starts.
   async function animateMove(v){
-    if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+    if(Preferences.reduced())return;
     const e=v.event,target=e.kind==='hole'?$(`mp-hole-${e.player}-${e.index}`):e.kind==='burn'?$('mp-burn'):$(`mp-board-${e.board}-${e.index}`),source=$('mp-deck');
     if(!target||!source)return;
     const a=source.getBoundingClientRect(),b=target.getBoundingClientRect(),box=document.createElement('div');box.innerHTML=e.card?card(e.card):back();
     const el=box.firstElementChild;el.classList.add('ghost','mp-flight');el.setAttribute('aria-hidden','true');
     Object.assign(el.style,{left:a.left+'px',top:a.top+'px',width:b.width+'px',height:b.height+'px'});document.body.append(el);
-    flight=el.animate([{transform:'translate(0,0) rotate(-12deg)'},{transform:`translate(${b.left-a.left}px,${b.top-a.top}px) rotate(0deg)`}],{duration:DEAL_TIMING.card,easing:'ease-in-out',fill:'forwards'});
+    flight=el.animate([{transform:'translate(0,0) rotate(-12deg)'},{transform:`translate(${b.left-a.left}px,${b.top-a.top}px) rotate(0deg)`}],{duration:DEAL_TIMING.card/Preferences.get().speed,easing:'ease-in-out',fill:'forwards'});
     try{await flight.finished;}catch(e){}finally{el.remove();flight=null;}
   }
   async function pump(){
@@ -351,7 +397,7 @@
     window.scrollTo({top:0,left:0,behavior:'instant'});
     if($('game-scroll'))$('game-scroll').scrollTop=0;
     if(Match.view(match).remaining===52&&FX.enhanced&&!mpPrepared){mpPrepared=true;const ok=await FX.shuffle();if(!ok){conceal();return;}if(id!==pumpId||screen!=='game'||document.hidden)return;}
-    if(Match.view(match).remaining===52&&!FX.enhanced&&!matchMedia('(prefers-reduced-motion: reduce)').matches){
+    if(Match.view(match).remaining===52&&!FX.enhanced&&!Preferences.reduced()){
       flight=$('mp-deck').animate([{transform:'rotate(-12deg) translateX(-12px)'},{transform:'rotate(12deg) translateX(12px)'},{transform:'none'}],{duration:DEAL_TIMING.shuffle,iterations:DEAL_TIMING.shuffleCycles});
       try{await flight.finished;}catch(e){}finally{flight=null;}
     }
@@ -361,9 +407,18 @@
     }}catch(e){message='Dealing paused: '+e.message;conceal();}finally{unlock();}
   }
   $('simulation-menu').onclick=()=>navigate('modes');
-  window.addEventListener('blur',()=>{if(screen==='game')conceal();});
-  document.addEventListener('visibilitychange',()=>{if(document.hidden&&screen==='game')conceal();});
-  window.addEventListener('pagehide',()=>{if(screen==='game')conceal();});
+  window.addEventListener('blur',()=>{closeSettings(false);if(screen==='game')conceal();});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden){closeSettings(false);if(screen==='game')conceal();}});
+  window.addEventListener('pagehide',()=>{closeSettings(false);if(screen==='game')conceal();});
+  $('settings-close').onclick=()=>closeSettings();
+  $('settings-panel').oncancel=e=>{e.preventDefault();closeSettings();};
+  $('save-leave').onclick=()=>{closeSettings();confirmHome();};
+  $('simulation-settings').onclick=openSettings;
+  $('speed').onchange=()=>Preferences.set('speed',Number($('speed').value));
+  $('reduce').onchange=()=>Preferences.set('motion',$('reduce').value);
+  Preferences.subscribe(syncPreferences);
+  matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change',()=>{syncPreferences();FX.clear();});
+  syncPreferences();
   let router;
   function navigate(next){router.go(next);}
   router=Routes.start({enter:showScreen,guard:guardNavigation});
