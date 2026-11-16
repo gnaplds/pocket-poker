@@ -660,3 +660,15 @@ test('browser Back cancel retains game entry; confirm leaves; Forward resumes co
 test('browser Back cannot leave a game after a failed save',async()=>{
  const p=page(savedFlop(),true,true);p.ids.get('resume-game').onclick();p.browser.history.go(-1);await new Promise(setImmediate);p.ids.get('home-save').onclick();await new Promise(setImmediate);assert.equal(p.browser.location.pathname,'/play');
 });
+
+test('hand rankings opens from Study, supports direct links and returns to Study',()=>{
+ const p=page(null,true,false,'/study'),app=p.ids.get('pocket-app');
+ app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='rankings').onclick();
+ assert.equal((app.innerHTML.match(/<details class="ranking-entry">/g)||[]).length,10);
+ assert.ok(app.innerHTML.indexOf('Royal flush')<app.innerHTML.indexOf('High card'));
+ assert.equal((app.innerHTML.match(/aria-label="Example hand"/g)||[]).length,10);
+ assert.match(app.innerHTML,/Suits have equal strength/);
+ app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();
+ assert.match(app.innerHTML,/Room to explore/);
+ assert.match(page(null,true,false,'/hand-rankings').ids.get('pocket-app').innerHTML,/<h2>Hand rankings<\/h2>/);
+});

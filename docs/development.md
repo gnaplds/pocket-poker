@@ -34,7 +34,7 @@ Scripts remain classic scripts loaded in document order. Shared globals are inte
 
 ## Routes and saves
 
-Routes select screens: `/`, `/new-game`, `/play`, `/study`, `/simulation`, and `/equity`. Trailing slashes normalize in the client. Browser history stores a route index, not cards or player data. Back/Forward runs the same cleanup as screen navigation: hide private cards, stop dealing, close dialogs, and cancel obsolete workers.
+Routes select screens: `/`, `/new-game`, `/play`, `/study`, `/simulation`, `/equity`, and `/hand-rankings`. Trailing slashes normalize in the client. Browser history stores a route index, not cards or player data. Back/Forward runs the same cleanup as screen navigation: hide private cards, stop dealing, close dialogs, and cancel obsolete workers.
 
 Within this document, leaving Pass & Play requires Save & Leave confirmation. Cancelling Back restores the current history entry without creating a new one. Browser navigation out of the document, reload, and closing a tab rely on automatic saving and lifecycle cleanup rather than a guaranteed custom dialog.
 

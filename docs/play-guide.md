@@ -53,3 +53,7 @@ Hand equity does not predict actual chip awards from unequal stacks or side pots
 Dealing keeps the current deliberate pace and readiness pauses. Newly public eligible cards flip once; private Peek stays instant. Winning-card outlines, chip collection, and the result dialog do not determine payouts. Starting another hand cancels unfinished decorative effects. Reduced motion uses static feedback and skips decorative travel, pulses, and confetti.
 
 Use the game among trusted players, one tab at a time. Interface privacy does not hide game data from browser storage or developer tools.
+
+## Hand rankings
+
+Choose Hand rankings from Study for ten examples, strongest first. Open any entries to compare explanations and tie rules. Back returns to Study.

@@ -36,6 +36,7 @@ Open [localhost:8765](http://127.0.0.1:8765/). No package installation or build 
 | `/study` | Study-mode menu |
 | `/simulation` | Open-card Simulation |
 | `/equity` | Manual Equity calculator |
+| `/hand-rankings` | Expandable hand examples and tie rules |
 
 A URL opens a screen, not a shared game. Opening `/play` resumes a valid local save with private cards concealed; without one it opens setup. Study entries survive screen changes in the same visit but reset on reload. The former `/dealing-prototype.html` entry redirects to `/`.
 

@@ -126,3 +126,5 @@ body[data-effects="false"] .winning-caption{display:none}
 .public-flip-face{transform:rotateY(180deg)}
 
 .home-credit{text-align:center;padding:12px 0 4px}.study-guide{margin-top:32px;padding-top:20px;border-top:1px solid #c6d3c3}.study-guide p{font-size:14px;color:#53695e}
+
+.ranking-list{display:grid;gap:10px}.ranking-entry{border:1px solid #c6d3c3;border-radius:10px;background:#fffef9}.ranking-entry summary{padding:14px;min-height:48px;cursor:pointer;font-weight:700}.ranking-entry summary:focus-visible{outline:3px solid #4169e1;outline-offset:2px;border-radius:10px}.ranking-number{display:inline-block;min-width:24px;color:#586c60}.ranking-body{padding:0 14px 4px}.ranking-body p{font-size:14px}.ranking-cards{display:flex;gap:6px;margin:4px 0 14px}.ranking-cards .card{width:clamp(34px,11vw,48px);height:66px;font-size:26px;flex-shrink:0}.ranking-cards .suit{font-size:26px}

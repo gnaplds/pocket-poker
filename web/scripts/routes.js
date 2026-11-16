@@ -1,6 +1,6 @@
 // The history index lets a cancelled Back restore the same entry without adding duplicates.
 const Routes=(()=>{
-  const paths={home:'/',setup:'/new-game',game:'/play',modes:'/study',simulation:'/simulation',equity:'/equity'};
+  const paths={home:'/',setup:'/new-game',game:'/play',modes:'/study',simulation:'/simulation',equity:'/equity',rankings:'/hand-rankings'};
   function start({enter,guard}){
     const history=window.history,location=window.location;
     let index=Number.isInteger(history.state?.pocketIndex)?history.state.pocketIndex:0,current=location.pathname.replace(/\/+$/,'')||'/',restoring=false,pending=null,approved=false;
