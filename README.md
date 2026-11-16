@@ -4,6 +4,8 @@ Texas Hold’em for **2–8 friends sharing one phone**, with open-card Simulati
 
 [Play Pocket Poker](https://pocket-poker.netlify.app/) · [Play guide](docs/play-guide.md) · [Development and deployment](docs/development.md)
 
+![Pocket Poker home screen with Continue game, New game, and Study](docs/images/home-screen.png)
+
 ## Modes
 
 - **Pass & Play:** 20 chips per player, fixed 1/2 blinds, private Peek, betting confirmations, side pots, rotating positions, saved games, and unanimous run-it-twice voting. Results offer Next hand or a same-group Rematch.
