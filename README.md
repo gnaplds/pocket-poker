@@ -1,12 +1,14 @@
 # Pocket Poker
 
-Texas Hold’em for **2–8 friends sharing one phone**, with open-card Simulation and an Equity calculator for study. Play with small chip stacks, pass the phone for private turns, and keep playing across hands. No accounts, backend, or online multiplayer.
+Texas Hold’em for **2–10 friends sharing one phone**, with open-card Simulation and an Equity calculator for study. Play with small chip stacks, pass the phone for private turns, and keep playing across hands. No accounts, backend, or online multiplayer.
 
 [Play Pocket Poker](https://pocket-poker.netlify.app/) · [Play guide](docs/play-guide.md) · [Development and deployment](docs/development.md)
 
 ![Pocket Poker home screen with Continue game, New game, and Study](docs/images/home-screen.png)
 
 ## Play and study
+
+Pass & Play, Simulation, and the Equity calculator each support 2–10 players.
 
 - **Pass & Play:** 20 chips per player, fixed 1/2 blinds, private Peek, betting confirmations, side pots, rotating positions, saved games, and unanimous run-it-twice voting. Results offer Next hand or a same-group Rematch.
 - **Simulation:** visible hole cards, independent 20-chip deals, manual betting for every seat, street pauses, replay of the same deck, and optional per-card Study Tools.
@@ -44,7 +46,7 @@ A URL opens a screen, not a shared game. Opening `/play` resumes a valid local s
 
 ## Settings
 
-Use the gear to choose 10 or T notation, reduced motion, and dealing speed across modes. Peek and guidance changes apply to the current multiplayer game; elsewhere they set defaults for new games. Defaults are 10 notation, Follow device for motion, and 1× dealing speed. Speed options range from 0.5× to 4× and keep readiness pauses. Changes apply immediately and save on this device; a warning appears if saving fails.
+On Home, the settings gear sits beside **Study**. Use the gear to choose 10 or T notation, reduced motion, and dealing speed across modes. Peek and guidance changes apply to the current multiplayer game; elsewhere they set defaults for new games. Defaults are 10 notation, Follow device for motion, and 1× dealing speed. Speed options range from 0.5× to 4× and keep readiness pauses. Changes apply immediately and save on this device; a warning appears if saving fails.
 
 Settings hides private cards and keeps Save & Leave inside the panel. Close, Escape, or in-app browser Back dismisses the panel first. Closing normally returns to the same turn with cards concealed.
 

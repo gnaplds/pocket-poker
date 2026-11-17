@@ -2,7 +2,7 @@ var Poker = (() => {
   const ranks='23456789TJQKA', suits='cdhs';
   const fullDeck=()=>[...ranks].flatMap(r=>[...suits].map(s=>r+s));
   function create(players,deck=fullDeck(),betting=false) {
-    if(!Number.isInteger(players)||players<2||players>8) throw Error('Choose 2–8 players.');
+    if(!Number.isInteger(players)||players<2||players>10) throw Error('Choose 2–10 players.');
     if(deck.length!==52 || new Set(deck).size!==52 || deck.some(c=>!fullDeck().includes(c))) throw Error('A deal needs 52 unique cards.');
     const options=typeof betting==='object'?betting:{},stacks=options.stacks||Array(players).fill(20),button=options.button??0;
     if(stacks.length!==players||stacks.some(v=>!Number.isSafeInteger(v)||v<0)||stacks.filter(v=>v>0).length<2||!Number.isInteger(button)||button<0||button>=players)throw Error('Invalid stacks or button.');
@@ -23,7 +23,9 @@ var Poker = (() => {
     return state;
   }
   function positions(n) {
-    return {2:['BTN / SB','BB'],3:['BTN','SB','BB'],4:['BTN','SB','BB','UTG / CO'],5:['BTN','SB','BB','UTG / HJ','CO'],6:['BTN','SB','BB','UTG','HJ / UTG+1','CO'],7:['BTN','SB','BB','UTG','UTG+1','HJ','CO'],8:['BTN','SB','BB','UTG','UTG+1','UTG+2','HJ','CO']}[n];
+    return {2:['BTN / SB','BB'],3:['BTN','SB','BB'],4:['BTN','SB','BB','UTG / CO'],5:['BTN','SB','BB','UTG / HJ','CO'],6:['BTN','SB','BB','UTG','HJ / UTG+1','CO'],7:['BTN','SB','BB','UTG','UTG+1','HJ','CO'],8:['BTN','SB','BB','UTG','UTG+1','UTG+2','HJ','CO'],
+      9:['BTN','SB','BB','UTG','UTG+1','UTG+2','LJ','HJ','CO'],
+      10:['BTN','SB','BB','UTG','UTG+1','UTG+2','UTG+3','LJ','HJ','CO']}[n];
   }
   function nextHand(s,deck) {
     // shortcut: fixed seats have no joins or rebuys; revisit blind movement before supporting either.
@@ -38,7 +40,7 @@ var Poker = (() => {
     const labels=s.seated.map(v=>v?'':'Out');
     labels[s.button]='BTN';labels[s.sb]=s.seated.filter(Boolean).length===2?'BTN / SB':'SB';labels[s.bb]='BB';
     const rest=Array.from({length:s.players},(_,k)=>(s.bb+1+k)%s.players).filter(i=>s.seated[i]&&!labels[i]);
-    const extra={1:['UTG / CO'],2:['UTG / HJ','CO'],3:['UTG','HJ / UTG+1','CO'],4:['UTG','UTG+1','HJ','CO'],5:['UTG','UTG+1','UTG+2','HJ','CO']}[rest.length]||[];
+    const extra=positions(rest.length+3).slice(3);
     rest.forEach((i,k)=>labels[i]=extra[k]);return labels;
   }
   function openRound(s) {
@@ -239,7 +241,7 @@ var Poker = (() => {
   }
   function results(hands,board) {
     const cards=[...hands.flat(),...board];
-    if(hands.length<2||hands.length>8||hands.some(h=>h.length!==2)||![3,4,5].includes(board.length)||new Set(cards).size!==cards.length) throw Error('Results need distinct hole cards and a completed street.');
+    if(hands.length<2||hands.length>10||hands.some(h=>h.length!==2)||![3,4,5].includes(board.length)||new Set(cards).size!==cards.length) throw Error('Results need distinct hole cards and a completed street.');
     const ranked=hands.map(h=>rank([...h,...board]));
     const max=Math.max(...ranked.map(h=>h.score));
     return {hands:ranked,winners:ranked.flatMap((h,i)=>h.score===max?[i]:[])};

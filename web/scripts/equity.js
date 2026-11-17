@@ -1,6 +1,6 @@
 var Equity=(()=>{
   function validate({hands,board,dead=[]}){
-    if(!Array.isArray(hands)||hands.length<2||hands.length>8||hands.some(h=>!Array.isArray(h)||h.length!==2)||!Array.isArray(board)||![0,3,4,5].includes(board.length))throw Error('Enter two cards per player and a complete board stage.');
+    if(!Array.isArray(hands)||hands.length<2||hands.length>10||hands.some(h=>!Array.isArray(h)||h.length!==2)||!Array.isArray(board)||![0,3,4,5].includes(board.length))throw Error('Enter two cards per player and a complete board stage.');
     if(!Array.isArray(dead))throw Error("Invalid unavailable cards.");
     const known=[...hands.flat(),...board,...dead];
     if(new Set(known).size!==known.length||known.some(c=>!Poker.fullDeck().includes(c)))throw Error('Use distinct valid cards.');

@@ -320,15 +320,15 @@ test('a tied normal hand keeps results private until Showdown and announces both
  assert.match(ids.get('winner-summary').innerHTML,/<strong>Blair<\/strong> receives 2 chips/);
 });
 
-test('setup offers eight named seats and preserves names when changing table size',()=>{
+test('setup offers ten named seats and preserves names when changing table size',()=>{
  const p=page(),app=p.ids.get('pocket-app');
  app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='setup').onclick();
- assert.match(app.innerHTML,/>8<\/option>/);
+ assert.match(app.innerHTML,/>10<\/option>/);
  p.ids.get('mp-name-0').value='Robin';
- p.ids.get('mp-count').value='8';p.ids.get('mp-count').onchange();
+ p.ids.get('mp-count').value='10';p.ids.get('mp-count').onchange();
  assert.equal(p.ids.get('mp-name-0').value,'Robin');
- for(let i=1;i<8;i++)assert.equal(p.ids.get('mp-name-'+i).value,'Player '+(i+1));
- assert.match(app.innerHTML,/Seat 8/);
+ for(let i=1;i<10;i++)assert.equal(p.ids.get('mp-name-'+i).value,'Player '+(i+1));
+ assert.match(app.innerHTML,/Seat 10/);
 });
 test('Equity card entry disables duplicates, preserves inputs across modes, and leaves saved games untouched',()=>{
  const p=page(savedFlop()),app=p.ids.get('pocket-app'),before=p.saved;
@@ -624,18 +624,18 @@ test('Hand details needs Peek, clears content on collapse, and resets on a priva
  assert.equal(ids.get('private-guidance').hidden,true);assert.equal(ids.get('private-guidance').innerHTML,'');
 });
 
-test('eight long-named seats use the same private controls and finish a fold hand once',()=>{
- const raw=JSON.parse(savedFlop());raw.names=Array.from({length:8},(_,i)=>'Long player name '+(i+1));
- raw.seed={...raw.seed,stacks:Array(8).fill(20),button:0,sb:1,bb:2};raw.moves=Array.from({length:16},()=>({type:'deal'}));raw.phase='public';raw.runChoice=null;raw.voters=null;
+test('ten long-named seats use the same private controls and finish a fold hand once',()=>{
+ const raw=JSON.parse(savedFlop());raw.names=Array.from({length:10},(_,i)=>'Long player name '+(i+1));
+ raw.seed={...raw.seed,stacks:Array(10).fill(20),button:0,sb:1,bb:2};raw.moves=Array.from({length:20},()=>({type:'deal'}));raw.phase='public';raw.runChoice=null;raw.voters=null;
  const p=page(JSON.stringify(raw)),{ids}=p,app=ids.get('pocket-app');ids.get('resume-game').onclick();
  const command=type=>app.querySelectorAll('[data-command]').find(e=>e.dataset.command===type).onclick();
  command('continue');
- for(let i=0;i<7;i++){
+ for(let i=0;i<9;i++){
   command('ready');assert.equal(ids.get('private-guidance').innerHTML,'');
   app.querySelectorAll('[data-bet]').find(e=>e.dataset.bet==='fold').onclick();ids.get('action-confirm').onclick();
  }
  assert.equal(ids.get('winner-popup').open,true);assert.equal(ids.get('winner-continue').textContent,'Next hand');
- assert.equal((app.innerHTML.match(/aria-label="Seat \d:/g)||[]).length,8);
+ assert.equal((app.innerHTML.match(/aria-label="Seat \d+:/g)||[]).length,10);
  assert.doesNotMatch(app.innerHTML,/public-holes|You have/);
  const before=p.saved;ids.get('winner-review').onclick();assert.equal(p.saved,before);
 });
