@@ -238,7 +238,7 @@ test('a royal flush on the board ties every player regardless of hole cards',()=
   assert.ok(r.hands.every(h=>h.category==='Royal flush'));
 });
 test('all player counts and branch points preserve the deck and finish within 32 draws',()=>{
-  for(let players=2;players<=8;players++) for(const [before,extra,shared] of [[0,16,0],[4,12,3],[6,10,4]]) {
+  for(let players=2;players<=10;players++) for(const [before,extra,shared] of [[0,16,0],[4,12,3],[6,10,4]]) {
     let s=advance(P.create(players,deck()),players*2+before);
     s=P.runTwice(s);
     for(let i=0;i<20&&s.stage!=='complete';i++) s=P.next(s);
@@ -275,7 +275,7 @@ test('equal categories use kickers and suits do not break genuine ties',()=>{
   assert.deepEqual(plain(P.results([['As','Qd'],['Ah','Qc']],['Ac','7s','6d','3c','2h']).winners),[0,1]);
 });
 test('invalid cards and duplicate-card scenarios are rejected at the public boundary',()=>{
-  assert.throws(()=>P.create(9,deck()));
+  assert.throws(()=>P.create(11,deck()));
   assert.throws(()=>P.create(2,Array(52).fill('As')));
   assert.throws(()=>P.rank(['As','As','Kh','Qh','Jh']));
   assert.throws(()=>P.results([['As','Qd'],['As','Jd']],['Ac','7s','6d']));
@@ -355,8 +355,8 @@ test('tied winners split an odd pot clockwise from the button; folded blind stay
  assert.deepEqual(plain(s.betting.awards),[2,0,3]);
  assert.deepEqual(plain(s.betting.stacks),[20,19,21]);
 });
-test('all-ins conserve all chips with 2–8 players, one board or two',()=>{
- for(let n=2;n<=8;n++) for(const twice of [false,true]){
+test('all-ins conserve all chips with 2–10 players, one board or two',()=>{
+ for(let n=2;n<=10;n++) for(const twice of [false,true]){
   let s=advance(P.create(n,deck(),true),n*2);
   s=P.act(s,'raise',20);
   while(s.betting.actor!==null)s=P.act(s,'call');
@@ -508,7 +508,7 @@ test('resuming a partial deal continues the original deck without drawing a card
 });
 test('mixed legal actions over continuing games conserve chips, cards, and recoverable state',()=>{
  let seed=7631;const random=n=>{seed=(seed*1664525+1013904223)>>>0;return seed%n;};
- for(let n=2;n<=8;n++){
+ for(let n=2;n<=10;n++){
   let s=M.start(Array.from({length:n},(_,i)=>'Seat '+i),deck(),n-1);
   for(let step=0;step<350;step++){
    const v=M.view(s);assert.equal(v.seats.reduce((sum,p)=>sum+p.stack,0)+v.pot,n*20);
@@ -630,8 +630,8 @@ test('betting history groups blinds and actions by street, including reached no-
  assert.deepEqual(plain(M.view(M.restore(M.save(s))).historyRounds),plain(rounds));
 });
 
- test('seven and eight seats have positions, unique hole cards, and resumable games',()=>{
- for(const n of [7,8]){
+ test('seven through ten seats have positions, unique hole cards, and resumable games',()=>{
+ for(const n of [7,8,9,10]){
   let s=M.start(Array.from({length:n},(_,i)=>'Player '+(i+1)),deck());
   for(let i=0;i<n*2;i++)s=M.command(s,{type:'deal'});
   const v=M.view(s);
@@ -641,5 +641,5 @@ test('betting history groups blinds and actions by street, including reached no-
   assert.ok(v.seats.every(p=>p.position));
   assert.deepEqual(plain(M.view(M.restore(M.save(s)))),plain(v));
  }
- assert.throws(()=>P.create(9),/2–8/);
+ assert.throws(()=>P.create(11),/2–10/);
  });

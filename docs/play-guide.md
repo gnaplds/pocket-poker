@@ -2,7 +2,7 @@
 
 ## Pass & Play
 
-1. Choose **Play together**, or **New game** if a save exists. Enter 2–8 names in clockwise seat order, starting at the bottom.
+1. Choose **Play together**, or **New game** if a save exists. Enter 2–10 names in clockwise seat order, starting at the bottom.
 2. Choose hold-to-peek or tap-to-reveal, and whether everyone gets hand guidance. Each player starts with 20 chips; blinds stay at 1/2.
 3. Start, then pass the phone to the named player. Tap **I'm ready** before viewing cards. Only that player's private cards are available.
 4. Check acts immediately. Fold, Call, Bet/Raise, and All-in require confirmation. The Min–Max slider moves one chip at a time; its maximum uses the remaining stack.
@@ -10,7 +10,7 @@
 6. At a private river finish, tap **Showdown** to reveal eligible hands and pay the pots. If all betting has ended against all-in opponents, cards become public and the hand finishes automatically after the last runout. A sole remaining player wins immediately without revealing private cards.
 7. Choose **Next hand** to keep stacks and move the button/blinds. Players with no chips sit out. At game end, **Rematch** confirms a reset for the full original group, including eliminated players.
 
-The pot strip shows the hand number, blinds, and stage. Community cards stay visible while the table scrolls. Seat colors show confirmed actions: blue for bets/raises, matching calls green, folded seats faded red, and all-in gold. Betting history is grouped by street.
+The pot strip shows the hand number, blinds, and stage. The title scrolls away while the pot and community cards stay visible. When dealing starts, the board moves to the top of the screen. Seat colors show confirmed actions: blue for bets/raises, matching calls green, folded seats faded red, and all-in gold. Betting history is grouped by street.
 
 ### Private guidance
 
@@ -26,15 +26,15 @@ Once no more betting is possible and all owed calls/folds are resolved, remainin
 
 ## Simulation
 
-Choose **Study → Simulation**. Every dealt hole card is visible; one observer controls all seats. Each New Deal starts independent 20-chip stacks with 1/2 blinds and a fixed starting dealer. Replay Same Deck restores the original deck order. Replacing an unfinished deal requires confirmation.
+Choose **Study → Simulation** and select 2–10 players. Every dealt hole card is visible; one observer controls all seats. Each New Deal starts independent 20-chip stacks with 1/2 blinds and a fixed starting dealer. Replay Same Deck restores the original deck order. Replacing an unfinished deal requires confirmation.
 
-Use **Deal Hole Cards**, then the street buttons. Betting uses the same action confirmations and chip slider as Pass & Play, without handoffs. Disable demo betting for deal-only study. **Study Tools** contains Next Card, Play/Pause, speed, deck/burn inspection, replay, and guided examples. Run It Twice is an observer choice at the eligible pauses, without votes.
+Use **Deal Hole Cards**, then the street buttons. The community board aligns with the top of the screen before each street is dealt. Betting uses the same action confirmations and chip slider as Pass & Play, without handoffs. Disable demo betting for deal-only study. **Study Tools** contains Next Card, Play/Pause, speed, deck/burn inspection, replay, and guided examples. Run It Twice is an observer choice at the eligible pauses, without votes.
 
 Seats show hand categories and equity bars; player details show Win/Tie and best-five cards. Equity excludes all dealt hole cards and burns, but ignores future shuffled deck order. A/B runouts have separate equity values. Results appear automatically when the hand is finished. Leaving the mode stops playback and unfinished calculations; completed state stays in memory until reload.
 
 ## Equity calculator
 
-Choose **Study → Equity calculator**. Select 2–8 players, enter two known cards each, and choose Preflop (no board), Flop (3), Turn (4), or River (5). The picker disables used cards and advances within the current hand or board. Calculations start automatically when the inputs form a valid stage.
+Choose **Study → Equity calculator**. Select 2–10 players, enter two known cards each, and choose Preflop (no board), Flop (3), Turn (4), or River (5). The picker disables used cards and advances within the current hand or board. Calculations start automatically when the inputs form a valid stage.
 
 Removing entered cards through Reset, a lower player count, or an earlier street requires confirmation. Reset keeps names, player count, and selected stage. Edits discard outdated results. Cancel hides incomplete results; **Calculate again** restarts. Entries stay during same-visit navigation but reset on reload.
 
@@ -60,7 +60,7 @@ Choose Hand rankings from Study for ten examples, strongest first. Card examples
 
 ## Settings
 
-Open the gear on Home, setup, or any mode. Choose **10 / T**, **Motion: Follow device / Reduced**, and **Dealing speed: 0.5× / 1× / 2× / 4×**. Simulation Study Tools uses the same motion and speed choices. Reduced motion skips animation waits; readiness pauses stay.
+On Home, open the square gear beside **Study**. The gear is also available in setup and each mode. Choose **10 / T**, **Motion: Follow device / Reduced**, and **Dealing speed: 0.5× / 1× / 2× / 4×**. Simulation Study Tools uses the same motion and speed choices. Reduced motion skips animation waits; readiness pauses stay.
 
 In Pass & Play, **This game** changes card viewing and guidance for everyone in that saved game. Elsewhere, **New-game defaults** prefills setup and leaves existing saved games unchanged. Rematches retain their game settings.
 

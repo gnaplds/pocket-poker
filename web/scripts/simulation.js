@@ -22,7 +22,7 @@ const examples={
  twice:{players:2,deck:completeDeck('Ks As Kh Ah 2c Ad Kd 7c 3c 2d 3d 4h 5c Kc 5d 6h')},
  tie:{players:2,deck:completeDeck('2c Ac 3c Ah 4c Ts Js Qs 4d Ks 4h As')}
 };
-const names=Array.from({length:8},(_,i)=>'Player '+(i+1));
+const names=Array.from({length:10},(_,i)=>'Player '+(i+1));
 const name=i=>names[i]||('Player '+(i+1));
 const safe=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let state=Poker.create(4,shuffled(),true),playing=false,busy=false,guideBusy=false,playbackId=0;
@@ -292,5 +292,15 @@ $('player-count').onchange=()=>{const count=Number($('player-count').value);$('p
 document.querySelectorAll('[data-guide]').forEach(b=>b.onclick=()=>{guideKey=b.dataset.guide;guideStep=0;document.querySelectorAll('[data-guide]').forEach(t=>t.setAttribute('aria-selected',String(t===b)));renderGuide();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)cancelSimConfirm();if(document.hidden&&playing){playing=false;playbackId++;notice='Playback paused while the page was hidden.';controls();}});
 window.addEventListener('blur',()=>{if(busy||playing){simPaused=true;playing=false;playbackId++;controls();}});
-function seatStyle(i,n){if(n>6){const points=n===8?[[50,90],[15,75],[15,50],[15,25],[50,10],[85,25],[85,50],[85,75]]:[[50,90],[15,75],[15,50],[15,25],[50,10],[85,30],[85,65]];return `left:${points[i][0]}%;top:${points[i][1]}%;grid-column:${points[i][0]<30?1:points[i][0]>70?3:2};grid-row:${points[i][1]<40?1:points[i][1]>60?3:2};--seat-lift:0px;--rank-lift:0%`;}const angle=(90+i*360/n)*Math.PI/180;return `left:${50+35*Math.cos(angle)}%;top:${50+34*Math.sin(angle)}%;--seat-lift:${Math.max(0,Math.sin(angle))*48}px;--rank-lift:${Math.abs(Math.cos(angle))<0.1?0:Math.sin(angle)<-0.1?30:5}%`;}
+function seatStyle(i,n){
+  if(n>6){
+    const rows=Math.ceil((n-2)/2);
+    const topSeat=rows+1;
+    let column=2, row=1;
+    if(i===0) row=rows;
+    else if(i<topSeat){column=1;row=rows+1-i;}
+    else if(i>topSeat){column=3;row=i-topSeat;}
+    return `grid-column:${column};grid-row:${row}`;
+  }
+  const angle=(90+i*360/n)*Math.PI/180;return `left:${50+35*Math.cos(angle)}%;top:${50+34*Math.sin(angle)}%;--seat-lift:${Math.max(0,Math.sin(angle))*48}px;--rank-lift:${Math.abs(Math.cos(angle))<0.1?0:Math.sin(angle)<-0.1?30:5}%`;}
 render();

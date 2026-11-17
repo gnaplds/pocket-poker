@@ -24,12 +24,12 @@ test('preflop reports estimates through 20,000 samples and conserves multiway po
  assert.ok(Math.abs(r.players.reduce((n,p)=>n+p.equity,0)-1)<1e-10);
  assert.throws(()=>[...E.calculate({hands:[['As','Ah'],['Kd','Kc']],board:[]},()=>-1)]);
 });
-test('eight-player exact equity splits a board-only royal flush and excludes all known cards',()=>{
- const hands=Array.from({length:8},(_,i)=>ctx.Poker.fullDeck().slice(i*2,i*2+2));
+test('ten-player exact equity splits a board-only royal flush and excludes all known cards',()=>{
+ const hands=Array.from({length:10},(_,i)=>ctx.Poker.fullDeck().slice(i*2,i*2+2));
  const r=finish({hands,board:['As','Ks','Qs','Js','Ts']});
- for(const p of r.players){assert.equal(p.equity,.125);assert.equal(p.win,0);assert.equal(p.tie,1);}
- const flop=finish({hands,board:['As','Ks','Qs']});assert.equal(flop.completed,528);
- const turn=finish({hands,board:['As','Ks','Qs','Js']});assert.equal(turn.completed,32);
+ for(const p of r.players){assert.equal(p.equity,.1);assert.equal(p.win,0);assert.equal(p.tie,1);}
+ const flop=finish({hands,board:['As','Ks','Qs']});assert.equal(flop.completed,406);
+ const turn=finish({hands,board:['As','Ks','Qs','Js']});assert.equal(turn.completed,28);
  assert.ok(Math.abs(flop.players.reduce((s,p)=>s+p.equity,0)-1)<1e-10);
 });
 test('exact results are invariant under reordered players and consistent suit changes',()=>{
