@@ -46,7 +46,7 @@ A URL opens a screen, not a shared game. Opening `/play` resumes a valid local s
 
 ## Settings
 
-On Home, the settings gear sits beside **Study**. Use the gear to choose 10 or T notation, reduced motion, and dealing speed across modes. Peek and guidance changes apply to the current multiplayer game; elsewhere they set defaults for new games. Defaults are 10 notation, Follow device for motion, and 1× dealing speed. Speed options range from 0.5× to 4× and keep readiness pauses. Changes apply immediately and save on this device; a warning appears if saving fails.
+On Home, the settings gear sits beside **Study**. Dark mode is the first device setting. It starts off, remembers your choice in this browser, and applies instantly across screens while keeping cream card faces. Use the gear to choose 10 or T notation, show or hide seat-position labels, toggle reduced motion, and adjust dealing speed with a slider across modes. Peek and guidance changes apply to the current multiplayer game; elsewhere they set defaults for new games. Defaults are 10 notation, Follow device for motion, and 1× dealing speed. Speed options range from 0.5× to 4× and keep readiness pauses. Changes apply immediately and save on this device; a warning appears if saving fails.
 
 Settings hides private cards and keeps Save & Leave inside the panel. Close, Escape, or in-app browser Back dismisses the panel first. Closing normally returns to the same turn with cards concealed.
 
@@ -93,3 +93,7 @@ The calculator idea drew from [PokerCoaching](https://pokercoaching.com/odds-cal
 Project code and original documentation use the [MIT License](LICENSE). Inter uses the [SIL Open Font License](web/fonts/Inter-LICENSE.txt). GT Maru is not bundled.
 
 The research screenshot `.scratch/mobile-calculator/research/pokernet-demo-river.png` depicts third-party content and is not covered by this project's MIT grant. External projects, names, and materials retain their original rights.
+
+### Interface consistency
+
+Simulation keeps betting controls below a scrollable table, with the board visible during play. Player details start closed, and action confirmations name the decision and chip amount. Settings shows 10/T and hold/tap choices directly. The Equity card picker keeps its Close button visible while cards scroll. Both themes use the same heading scale. Solid 3 px action borders make betting status visible. Folded players become compact gray markers with their name and chips, preserving clockwise seating; reduced motion skips the brief shrink.

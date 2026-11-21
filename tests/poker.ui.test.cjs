@@ -299,7 +299,7 @@ test('fold-win popup preserves private cards and completed-hand resume does not 
  ids.get('resume-game').onclick();
  app.querySelectorAll('[data-command]').find(e=>e.dataset.command==='ready').onclick();
  app.querySelectorAll('[data-bet]').find(e=>e.dataset.bet==='fold').onclick();ids.get('action-confirm').onclick();
- assert.equal(ids.get('winner-popup').open,true);assert.match(ids.get('winner-summary').innerHTML,/Everyone else folded/);
+ assert.equal(ids.get('winner-popup').open,true);assert.match(ids.get('winner-summary').innerHTML,/Everyone else folded/);assert.match(app.innerHTML,/class="fold-marker"/);
  assert.doesNotMatch(app.innerHTML,/class="seat-rank"|id="board-verdict|class="player-result"/);
  ids.get('winner-review').onclick();
  const resumed=page(p.saved),home=resumed.ids.get('pocket-app');
@@ -405,7 +405,7 @@ test('Simulation deals one street, confirms bets, and pauses before the next str
  const p=page(savedFlop()),{ids}=p,app=ids.get('pocket-app'),saved=p.saved;
  app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();
  app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='simulation').onclick();
- assert.match(ids.get('sim-deal').textContent,/Hole Cards/);
+ assert.match(ids.get('sim-deal').textContent,/hole cards/);
  await ids.get('sim-deal').onclick();
  assert.equal(ids.get('remaining').textContent,44);
  assert.equal(ids.get('sim-deal').disabled,true);
@@ -415,7 +415,7 @@ test('Simulation deals one street, confirms bets, and pauses before the next str
   assert.equal(ids.get('remaining').textContent,44);
   ids.get('sim-confirm-yes').onclick();
  }
- assert.equal(ids.get('sim-deal').disabled,false);assert.match(ids.get('sim-deal').textContent,/Flop/);
+ assert.equal(ids.get('sim-deal').disabled,false);assert.match(ids.get('sim-deal').textContent,/flop/);
  assert.equal(ids.get('remaining').textContent,44);
  await ids.get('sim-deal').onclick();assert.equal(ids.get('remaining').textContent,40);
  assert.equal(p.saved,saved);assert.ok(ids.get('sim-table-start'));assert.ok(p.scrolls.some(s=>s.element===ids.get('sim-table-start')));
@@ -433,7 +433,7 @@ test('Simulation equity follows visible cards and ignores cancelled or obsolete 
  assert.doesNotMatch(ids.get('sim-equity-seat-0').innerHTML,/25.0%/);
  ids.get('sim-equity-retry').onclick();const newer=p.workers.at(-1);assert.notEqual(w,newer);
  ids.get('fold').onclick();ids.get('sim-confirm-yes').onclick();assert.equal(newer.terminated,true);
- assert.equal(p.workers.at(-1).request.visible.folded.filter(Boolean).length,1);
+ assert.equal(p.workers.at(-1).request.visible.folded.filter(Boolean).length,1);assert.match(ids.get('players').innerHTML,/class="fold-marker"/);
  assert.equal(ids.get('sim-equity-seat-3').innerHTML,'Folded');assert.equal(p.saved,saved);
  ids.get('simulation-menu').onclick();assert.equal(p.workers.at(-1).terminated,true);
 });
@@ -489,9 +489,9 @@ test('per-card study controls finish the current partial flop before offering th
  app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='simulation').onclick();
  ids.get('betting-mode').checked=false;await ids.get('betting-mode').onchange();await ids.get('sim-deal').onclick();
  await ids.get('next').onclick();await ids.get('next').onclick();
- assert.match(ids.get('sim-deal').textContent,/Finish Flop/);assert.equal(ids.get('twice').disabled,true);
+ assert.match(ids.get('sim-deal').textContent,/Finish flop/);assert.equal(ids.get('twice').disabled,true);
  assert.match(ids.get('sim-equity-status').innerHTML,/completed street/);
- await ids.get('sim-deal').onclick();assert.equal(ids.get('remaining').textContent,40);assert.match(ids.get('sim-deal').textContent,/Deal Turn/);
+ await ids.get('sim-deal').onclick();assert.equal(ids.get('remaining').textContent,40);assert.match(ids.get('sim-deal').textContent,/Deal turn/);
 });
 
 test('Simulation and Pass & Play share community board labels and street presentation',async()=>{
@@ -502,7 +502,7 @@ test('Simulation and Pass & Play share community board labels and street present
  assert.doesNotMatch(app.innerHTML.split('<section id="mp-community"')[0],/Blinds/);
  ids.get('save-leave').onclick();ids.get('home-save').onclick();app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='modes').onclick();app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='simulation').onclick();
  await ids.get('sim-deal').onclick();assert.match(ids.get('stage').innerHTML,/class="board-stage">Preflop/);
- assert.match(ids.get('stage').innerHTML,/class="board-meta">One board/);
+ assert.match(ids.get('stage').innerHTML,/class="board-meta">Blinds 1\/2/);
  for(let i=0;i<4;i++){ids.get('call-check').onclick();ids.get('sim-confirm-yes').onclick();}
  await ids.get('sim-deal').onclick();assert.match(ids.get('stage').innerHTML,/class="board-stage">Flop/);
 });
@@ -682,7 +682,7 @@ test('settings conceals Peek without changing the active turn and saves game cho
  ids.get('peek-button').onclick();const before=JSON.parse(p.saved);
  ids.get('settings-open').onclick();assert.equal(ids.get('settings-panel').open,true);
  assert.match(ids.get('private-cards').innerHTML,/Face-down/);
- ids.get('setting-guidance').value='false';ids.get('setting-guidance').onchange();
+ ids.get('setting-guidance').checked=false;ids.get('setting-guidance').onchange({target:ids.get('setting-guidance')});
  const after=JSON.parse(p.saved);assert.deepEqual(after.game,before.game);assert.equal(after.actor,before.actor);assert.equal(after.guidance,false);assert.equal(p.preferences,null);
  ids.get('settings-close').onclick();assert.equal(ids.get('settings-panel').open,false);assert.ok(ids.get('peek-button'));assert.match(app.innerHTML, /id="private-cards"[^>]*>.*Face-down/);
  ids.get('peek-button').onclick();assert.doesNotMatch(ids.get('private-cards').innerHTML,/Face-down/);
@@ -692,8 +692,8 @@ test('settings conceals Peek without changing the active turn and saves game cho
 test('device settings persist, share notation and defaults without overwriting a saved game',()=>{
  const original=savedFlop(),p=page(original),ids=p.ids,app=ids.get('pocket-app');
  ids.get('settings-open').onclick();
- for(const [name,value] of [['tens','T'],['speed','2'],['motion','reduced'],['reveal','tap'],['guidance','false']]){ids.get('setting-'+name).value=value;ids.get('setting-'+name).onchange();}
- assert.equal(p.saved,original);assert.equal(JSON.parse(p.preferences).speed,2);assert.equal(ids.get('speed').value,'2');assert.equal(ids.get('reduce').value,'reduced');
+ for(const [name,value] of [['tens','T'],['speed','2'],['motion','reduced'],['positions','false'],['reveal','tap'],['guidance','false']]){ids.get('setting-'+name).onchange({target:{value,checked:value==='true'||value==='reduced'}});}
+ assert.equal(p.saved,original);assert.equal(JSON.parse(p.preferences).positions,false);assert.equal(JSON.parse(p.preferences).speed,2);assert.equal(ids.get('speed').value,'2');assert.equal(ids.get('reduce').value,'reduced');
  ids.get('settings-close').onclick();
  app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='setup').onclick();assert.match(app.innerHTML,/value="tap" selected/);
  const restored=page(original,true,false,'/hand-rankings',p.preferences);
@@ -705,5 +705,58 @@ test('Back dismisses settings before leaving game; preference save failures are 
  p.browser.history.go(-1);await new Promise(setImmediate);
  assert.equal(p.browser.location.pathname,'/play');assert.equal(ids.get('settings-panel').open,false);assert.notEqual(ids.get('home-confirm').open,true);
  p.browser.history.go(-1);await new Promise(setImmediate);assert.equal(ids.get('home-confirm').open,true);
- const failed=page(null,true,true);failed.ids.get('settings-open').onclick();failed.ids.get('setting-tens').value='T';failed.ids.get('setting-tens').onchange();assert.match(failed.ids.get('settings-status').textContent,/could not be saved/);
+ const failed=page(null,true,true);failed.ids.get('settings-open').onclick();failed.ids.get('setting-tens').value='T';failed.ids.get('setting-tens').onchange({target:{value:'T'}});assert.match(failed.ids.get('settings-status').textContent,/could not be saved/);
+});
+
+test('theme switches preserve mounted content, scroll, entered names and multiplayer saves',()=>{
+ const original=savedFlop(),p=page(original),{ids,document}=p,app=ids.get('pocket-app');
+ app.querySelectorAll('[data-nav]').find(e=>e.dataset.nav==='setup').onclick();
+ const input=ids.get('mp-name-0');input.value='Unsubmitted name';app.scrollTop=120;
+ ids.get('settings-open').onclick();const markup=app.innerHTML;
+ ids.get('setting-dark').checked=true;ids.get('setting-dark').onchange();
+ assert.equal(document.documentElement.dataset.theme,'dark');
+ assert.equal(ids.get('mp-name-0'),input);assert.equal(input.value,'Unsubmitted name');
+ assert.equal(app.innerHTML,markup);assert.equal(app.scrollTop,120);assert.equal(p.saved,original);
+ assert.equal(JSON.parse(p.preferences).dark,true);
+ ids.get('setting-dark').checked=false;ids.get('setting-dark').onchange();
+ assert.equal(document.documentElement.dataset.theme,'light');assert.equal(app.innerHTML,markup);
+});
+
+
+test('polished controls name confirmed actions, expose preferences, and preserve private turns',()=>{
+ const p=page(savedFlop()),{ids}=p,app=ids.get('pocket-app');
+ ids.get('resume-game').onclick();app.querySelectorAll('[data-command]').find(e=>e.dataset.command==='ready').onclick();
+ const before=p.saved;
+ app.querySelectorAll('[data-bet]').find(e=>e.dataset.bet==='fold').onclick();
+ assert.equal(ids.get('action-confirm').textContent,'Fold hand');assert.equal(p.saved,before);
+ ids.get('action-cancel').onclick();
+ ids.get('settings-open').onclick();
+ assert.match(ids.get('settings-content').innerHTML,/<fieldset id="setting-tens"/);
+ assert.match(ids.get('settings-content').innerHTML,/type="radio" name="setting-reveal"/);
+ assert.match(ids.get('settings-content').innerHTML,/id="setting-guidance" type="checkbox" role="switch"/);
+ ids.get('setting-reveal').onchange({target:{value:'tap'}});
+ assert.equal(JSON.parse(p.saved).reveal,'tap');assert.deepEqual(JSON.parse(p.saved).game,JSON.parse(before).game);
+});
+
+test('simulation turn panel changes at street boundaries and confirmations state their outcome',async()=>{
+ const p=page(null,true,false,'/simulation'),{ids}=p;
+ assert.equal(ids.get('simulation').dataset.tableState,'ready');
+ assert.doesNotMatch(ids.get('results').innerHTML,/<details class="player-result" open/);
+ await ids.get('sim-deal').onclick();
+ assert.equal(ids.get('simulation').dataset.tableState,'turn');assert.equal(ids.get('sim-street-actions').hidden,true);
+ assert.doesNotMatch(ids.get('players').innerHTML,/Waiting for flop/);
+ ids.get('fold').onclick();assert.equal(ids.get('sim-confirm-yes').textContent,'Fold hand');ids.get('sim-confirm-no').onclick();
+ ids.get('call-check').onclick();assert.equal(ids.get('sim-confirm-yes').textContent,'Call 2 chips');ids.get('sim-confirm-yes').onclick();
+ for(let i=0;i<3;i++){ids.get('call-check').onclick();ids.get('sim-confirm-yes').onclick();}
+ assert.equal(ids.get('simulation').dataset.tableState,'ready');assert.equal(ids.get('sim-street-actions').hidden,false);
+ await ids.get('sim-deal').onclick();assert.match(ids.get('stage').innerHTML,/Flop/);
+});
+
+test('equity name fields keep visible labels and card picker keeps a separate close header',()=>{
+ const p=page(null,true,false,'/equity'),{ids}=p,app=ids.get('pocket-app');
+ assert.match(app.innerHTML,/<label for="eq-name-0">Player 1 name/);
+ app.querySelectorAll('[data-eq-slot]')[0].onclick();
+ assert.match(ids.get('equity-picker').innerHTML,/<div class="picker-heading">.*id="eq-picker-close"/);
+ assert.match(ids.get('equity-picker').innerHTML,/<div class="picker-cards">/);
+ ids.get('eq-picker-close').onclick();assert.equal(ids.get('equity-picker').open,false);
 });
