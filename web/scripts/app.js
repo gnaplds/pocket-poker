@@ -3,6 +3,7 @@
   // shortcut: one active tab owns the local save; add conflict handling before supporting concurrent tabs.
   let screen='home',match=null,saved=null,saveError='',message='',pumpId=0,flight=null,setupCount=4,setupReveal=Preferences.get().reveal,setupGuidance=Preferences.get().guidance,celebratedHand=0,pendingBet=null,detailsOpen=false,rematchPending=false;
   const setupNames=[...names];
+  const collapsedBoards=new Set();
   const back=(id='')=>`<span ${id?`id="${id}"`:''} class="card card-back" aria-label="Face-down card">◆</span>`;
   const brand=()=>'<span class="pocket-logo header-logo" aria-hidden="true"><span>♥</span><span>♠</span></span><span>Pocket Poker</span>';
   const gear=()=>'<button id="settings-open" aria-label="Settings" class="settings-gear">⚙</button>';
@@ -96,9 +97,9 @@
   function resultsView(v){
     let html=`<div class="result-heading"><h2 id="hand-result-title" tabindex="-1">${v.winner===null?'Hand complete':safe(v.seats[v.winner].name)+' wins the game'}</h2>${v.winner===null?'<button class="primary" data-command="nextHand">Next hand</button>':'<button class="primary" data-rematch="true">Rematch</button>'}</div>`;
     if(!v.showdown)html+=`<p>${safe(v.seats.find(p=>!p.folded).name)} wins. Everyone else folded; hole cards stay private.</p>`;
-    for(const [j,pot] of v.pots.entries())html+=`<div class="payout"><strong>${j?'Side pot '+j:'Main pot'} · ${pot.amount} chips</strong>${pot.shares.map((share,k)=>`<div>${v.boards.length===2?'Board '+(k?'B':'A')+': ':''}${share.awards.map(a=>safe(v.seats[a.player].name)+' receives '+a.amount).join(' · ')}${share.winners.length>1?' (tie)':''}</div>`).join('')}</div>`;
+    for(const [j,pot] of v.pots.entries())html+=`<div class="payout"><strong>${j?'Side pot '+j:'Main pot'} · ${pot.amount} chips</strong>${pot.shares.map((share,k)=>`<div>${v.boards.length>1?'Board '+('ABC'[k])+': ':''}${share.awards.map(a=>safe(v.seats[a.player].name)+' receives '+a.amount).join(' · ')}${share.winners.length>1?' (tie)':''}</div>`).join('')}</div>`;
     const returns=v.seats.flatMap(p=>p.returned?[`${safe(p.name)}: ${p.returned} unmatched chips returned`]:[]);if(returns.length)html+=`<p class="subtle">${returns.join(' · ')}</p>`;
-    if(v.showdown)html+=v.seats.filter(p=>p.rankings).map(p=>`<details class="player-result" open><summary><strong>${safe(p.name)}</strong> <span class="result-outcome ${p.award?'outcome-winner':''}">${p.award?'Won '+p.award+' chips':'No pot won'}</span></summary><div class="hole-cards">${p.cards.map(c=>card(c,'small-card')).join('')}</div>${v.boards.map((_,j)=>`<div class="hand-summary"><h3>Board ${j?'B':'A'} · ${safe(p.rankings[j].category)}</h3>${v.pots.some(pot=>pot.shares[j]?.winners.includes(v.seats.indexOf(p)))?winningCards(p.cards,v.boards[j],`mp-${v.hand}-${v.seats.indexOf(p)}-${j}`):p.guidance?guidanceHTML(p.guidance[j],false):`<div><small>Best five</small><div class="best-cards">${p.rankings[j].cards.map(c=>card(c,'small-card')).join('')}</div></div>`}</div>`).join('')}</details>`).join('');
+    if(v.showdown)html+=v.seats.filter(p=>p.rankings).map(p=>`<details class="player-result" open><summary><strong>${safe(p.name)}</strong> <span class="result-outcome ${p.award?'outcome-winner':''}">${p.award?'Won '+p.award+' chips':'No pot won'}</span></summary><div class="hole-cards">${p.cards.map(c=>card(c,'small-card')).join('')}</div>${v.boards.map((_,j)=>`<div class="hand-summary"><h3>Board ${'ABC'[j]} · ${safe(p.rankings[j].category)}</h3>${v.pots.some(pot=>pot.shares[j]?.winners.includes(v.seats.indexOf(p)))?winningCards(p.cards,v.boards[j],`mp-${v.hand}-${v.seats.indexOf(p)}-${j}`):p.guidance?guidanceHTML(p.guidance[j],false):`<div><small>Best five</small><div class="best-cards">${p.rankings[j].cards.map(c=>card(c,'small-card')).join('')}</div></div>`}</div>`).join('')}</details>`).join('');
     return html+(v.winner!==null?'<button data-nav="setup">New game with different players</button>':'');
   }
   function turnHTML(v){
@@ -110,16 +111,18 @@
     const p=v.seats[v.actor],l=v.legal;
     let html=`<div class="private-heading"><h2>${safe(p.name)}${v.voting?' · Runout choice':''}</h2>${v.guidance?`<button id="details-toggle" class="details-toggle" aria-expanded="${detailsOpen}" aria-controls="private-guidance">${detailsOpen?'Close details':'Hand details'}</button>`:''}</div><div class="private-strip"><div id="private-cards" class="private-cards">${p.cards.map(c=>c?card(c):back()).join('')}</div><button id="peek-button" class="peek-control" aria-pressed="false" ${v.publicCards&&!v.guidance?'disabled':''}>${v.publicCards?(v.guidance?(v.reveal==='tap'?'Show guidance':'Hold for guidance'):'Cards are public'):(v.reveal==='tap'?'Reveal cards':'Hold to peek')}</button></div>`;
     html+=`<div id="private-guidance" ${detailsOpen?'':'hidden'}></div>`;
-    if(v.voting)return html+'<p class="subtle">Hole cards are public. Peek guidance is private.</p><p class="subtle">Run twice needs everyone still in the hand to agree. A single Run once ends the vote.</p><div class="action-row"><button data-vote="no">Run once</button><button class="primary" data-vote="yes">Run twice</button></div>';
+    if(v.voting)return html+'<p class="subtle">Hole cards are public. Peek guidance is private.</p><p class="subtle">Choose 1, 2, or 3 runs. The lowest choice wins; Run once ends the vote.</p><div class="action-row"><button data-vote="1">Run once</button><button class="primary" data-vote="2">Run twice</button><button data-vote="3">Run 3 times</button></div>';
     return html+`<p class="subtle">${p.stack} chips available. ${l.owed?`${l.call} to call${l.call<p.stack?'':' · all-in'}.`:'Nothing to call.'}</p><div class="action-row betting-actions"><button data-bet="fold">Fold</button><button class="primary" data-bet="${l.owed?'call':'check'}">${l.owed?'Call '+l.call:'Check'}</button></div><div class="raise-slider"><label class="visually-hidden" for="mp-amount">Bet size</label><input id="mp-amount" aria-describedby="raise-selection" type="range" min="${l.min}" max="${l.max}" step="1" value="${l.min}" ${l.canRaise&&l.min<l.max?'':'disabled'}><div class="range-labels" aria-hidden="true"><span>Min · ${l.min}</span><span>Max · ${l.max}</span></div><button id="raise-action" data-bet="raise" ${l.canRaise?'':'disabled'}>Raise</button><p id="raise-selection" class="subtle"></p></div><div class="turn-footer"><button data-command="hide">Pause turn</button></div>`;
   }
   function boardVerdict(v,j){
     const pots=v.boardResults[j];if(!pots)return '';
-    return `<div id="board-verdict-${j}" class="board-verdict" role="status">${pots.map(p=>`<div><strong>${p.pot?'Side pot '+p.pot:'Main pot'}</strong> · ${p.winners.map(i=>safe(v.seats[i].name)).join(' &amp; ')} ${p.winners.length>1?'tie':'wins'} · ${p.amount} chips</div>`).join('')}${!v.settled?'<small>Paid after both boards finish.</small>':''}</div>`;
+    return `<div id="board-verdict-${j}" class="board-verdict" role="status">${pots.map(p=>`<div class="board-payout"><div>${pots.length>1?`<span class="payout-label">${p.pot?'Side pot '+p.pot:'Main pot'}</span>`:''}<strong>${p.winners.map(i=>safe(v.seats[i].name)).join(' &amp; ')}</strong> ${p.winners.length>1?'tie':'wins'}</div><span class="payout-amount">${p.amount} chips</span></div>`).join('')}${!v.settled?'<small>Paid after all boards finish.</small>':''}</div>`;
   }
   function gameHTML(v){
+    if(v.remaining===52)collapsedBoards.clear();
+    const visibleSeats=v.seats.map((p,i)=>p.seated?i:-1).filter(i=>i>=0);
     const history=`<section class="public-history" aria-label="Betting history"><h2>Betting history</h2>${v.historyRounds.map(round=>`<section class="history-round"><h3>${safe(round.label)}</h3>${round.actions.length?`<ol>${round.actions.map(e=>`<li>${safe(v.seats[e.player].name)}: ${safe(e.text)}</li>`).join('')}</ol>`:'<p>No betting</p>'}</section>`).join('')}</section>`;
-    return `<div class="game-scroll" id="game-scroll" tabindex="0" aria-label="Table and betting history"><div class="game-top"><div><div id="game-home" class="brand-small brand-home">${brand()}</div></div>${gear()}</div><section id="mp-community" class="mp-board" aria-label="Community cards"><div class="pot-strip"><strong>Pot ${v.pot}</strong>${communityMeta(v.boards,v.shared,v.settled?'complete':v.stage,v.hand)}</div>${v.boards.map((board,j)=>`<div class="board-line"><span class="board-name">${j?'B':'A'}</span><div class="board-cards">${Array.from({length:5},(_,i)=>card(board[i],i<v.shared?'shared':'',`mp-board-${j}-${i}`)).join('')}</div></div>${boardVerdict(v,j)}`).join('')}</section><section class="mp-oval seats-${v.seats.length} ${v.seats.length>6?'large-table':''}" aria-label="Clockwise seats"><div class="mp-center">${back('mp-deck')}<span id="mp-burn" class="burn-holder" aria-label="Burn pile">${v.burns}</span><p>${v.remaining} in deck</p></div>${v.seats.map((p,i)=>`<div class="mp-seat${v.settled?(p.award>0?' seat-winner':' seat-loser'):''} action-${p.actionColor} ${i===v.actor?'acting':''} ${p.folded&&p.seated?'folded':''} ${p.seated?'':'out'}" style="${seatStyle(i,v.seats.length)}${p.folded&&FX.snapshot('mp',i)?`;height:${FX.snapshot('mp',i).height}px`: ''}" aria-label="Seat ${i+1}: ${safe(p.name)}">${p.folded&&p.seated?`<div class="fold-marker"><strong>${safe(p.name)}</strong><span>${p.stack} chips</span><span>Folded</span></div>`:''}<span class="seat-turn">${i===v.actor&&!v.settled?'Your turn':''}</span><strong title="${safe(p.name)}">${safe(p.name)}</strong><small class="seat-position">${safe(p.position)}${!p.seated&&p.position!=='Out'?' · empty':''}</small>${i===v.button?'<span class="dealer" aria-label="Dealer button">D</span>':''}<div class="chips">${p.stack} chips</div><div class="mini-holes ${p.publicCards?'public-holes':''}">${[0,1].map(j=>p.publicCards?card(p.cards[j],'',`mp-hole-${i}-${j}`):p.cards.length>j?back(`mp-hole-${i}-${j}`):card(null,'',`mp-hole-${i}-${j}`)).join('')}</div>${p.categories.map((category,j)=>category?`<small class="seat-rank">${v.boards.length===2?(j?'B: ':'A: '):''}${safe(category)}</small>`:'').join('')}<small class="seat-note">${v.settled&&p.award>0?'Won '+p.award+' chips':p.folded?'Folded':p.seated&&!v.settled?[safe(p.lastAction),p.paid?p.paid+' in':''].filter(Boolean).join(' · '):''}</small><span id="mp-equity-${i}" class="mp-equity"></span></div>`).join('')}</section><div class="game-status" role="status">${safe(message|| (v.publicCards?(v.settled?'Shared showdown results':'Hole cards are public. The hand finishes after the final river.'):v.phase==='turn'?'Your cards hide as soon as you finish your action.':v.phase==='handoff'?'Pass the phone with all cards hidden.':'Shared table view'))}</div>${v.publicCards?'<p class="subtle">Hand equity uses public cards only and compares one equal pot, not side-pot payouts. ≈ means estimated.</p>':''}${v.phase==='result'?'':history}</div><section class="turn-box" aria-label="${v.phase==='result'?'Hand result':'Turn controls'}">${turnHTML(v)}</section>${v.phase==='result'?history:''}`;
+    return `<div class="game-scroll" id="game-scroll" tabindex="0" aria-label="Table and betting history"><div class="game-top"><div><div id="game-home" class="brand-small brand-home">${brand()}</div></div>${gear()}</div><section id="mp-community" class="mp-board" aria-label="Community cards"><div class="pot-strip"><strong>Pot ${v.pot}</strong>${communityMeta(v.boards,v.shared,v.settled?'complete':v.stage,v.hand)}</div>${v.boards.map((board,j)=>`<div class="board-line"><button class="board-name board-toggle" data-board-toggle="${j}" aria-label="Board ${'ABC'[j]}" aria-expanded="${!collapsedBoards.has(j)}" aria-controls="mp-board-cards-${j} mp-board-result-${j}">${'ABC'[j]}<span aria-hidden="true"></span></button><div id="mp-board-cards-${j}" class="board-cards" ${collapsedBoards.has(j)?'hidden':''}>${Array.from({length:5},(_,i)=>card(board[i],i<v.shared?'shared':'',`mp-board-${j}-${i}`)).join('')}</div></div><div id="mp-board-result-${j}" ${collapsedBoards.has(j)?'hidden':''}>${boardVerdict(v,j)}</div>`).join('')}</section><section class="mp-oval seats-${visibleSeats.length} ${visibleSeats.length>6?'large-table':''}" aria-label="Clockwise seats"><div class="mp-center">${back('mp-deck')}<span id="mp-burn" class="burn-holder" aria-label="Burn pile">${v.burns}</span><p>${v.remaining} in deck</p>${!v.seats[v.button].seated?'<p>Dealer button · empty seat</p>':''}</div>${v.seats.map((p,i)=>`<div ${p.seated?'':'hidden'} data-seat-index="${i}" class="mp-seat${v.settled?(p.award>0?' seat-winner':' seat-loser'):''} action-${p.actionColor} ${i===v.actor?'acting':''} ${p.folded&&p.seated?'folded':''} ${p.seated?'':'out'}" style="${p.seated?seatStyle(visibleSeats.indexOf(i),visibleSeats.length):''}" aria-label="Seat ${i+1}: ${safe(p.name)}">${p.folded&&p.seated?`<div class="fold-marker"><strong>${safe(p.name)}</strong><span>${p.stack} chips</span><span>Folded</span></div>`:''}<span class="seat-turn">${i===v.actor&&!v.settled?'Your turn':''}</span><strong title="${safe(p.name)}">${safe(p.name)}</strong><small class="seat-position">${safe(p.position)}${!p.seated&&p.position!=='Out'?' · empty':''}</small>${i===v.button?'<span class="dealer" aria-label="Dealer button">D</span>':''}<div class="chips">${p.stack} chips</div><div class="mini-holes ${p.publicCards?'public-holes':''}">${[0,1].map(j=>p.publicCards?card(p.cards[j],'',`mp-hole-${i}-${j}`):p.cards.length>j?back(`mp-hole-${i}-${j}`):card(null,'',`mp-hole-${i}-${j}`)).join('')}</div>${p.categories.map((category,j)=>category?`<small class="seat-rank">${v.boards.length>1?('ABC'[j]+': '):''}${safe(category)}</small>`:'').join('')}<small class="seat-note">${v.settled&&p.award>0?'Won '+p.award+' chips':p.folded?'Folded':p.seated&&!v.settled?[safe(p.lastAction),p.paid?p.paid+' in':''].filter(Boolean).join(' · '):''}</small><span id="mp-equity-${i}" class="mp-equity"></span></div>`).join('')}</section><div class="game-status" role="status">${safe(message|| (v.publicCards?(v.settled?'Shared showdown results':'Hole cards are public. The hand finishes after the final river.'):v.phase==='turn'?'Your cards hide as soon as you finish your action.':v.phase==='handoff'?'Pass the phone with all cards hidden.':'Shared table view'))}</div>${v.publicCards?'<p class="subtle">Hand equity uses public cards only and compares one equal pot, not side-pot payouts. ≈ means estimated.</p>':''}${v.phase==='result'?'':history}</div><section class="turn-box" aria-label="${v.phase==='result'?'Hand result':'Turn controls'}">${turnHTML(v)}</section>${v.phase==='result'?history:''}`;
   }
   function renderApp(previous=null){
     const closedResults=[...app.querySelectorAll('.player-result')].map(el=>!el.open);
@@ -161,14 +164,20 @@
     }
     if(screen==='equity')wireEquity();
     if(screen==='game'){
+      app.querySelectorAll('[data-board-toggle]').forEach(el=>el.onclick=()=>{
+        const j=Number(el.dataset.boardToggle),hide=!collapsedBoards.has(j);
+        if(hide)collapsedBoards.add(j);else collapsedBoards.delete(j);
+        el.setAttribute('aria-expanded',String(!hide));
+        el.innerHTML='ABC'[j]+'<span aria-hidden="true"></span>';
+        $('mp-board-cards-'+j).hidden=hide;$('mp-board-result-'+j).hidden=hide;
+      });
 
       syncPublicEquity(Match.view(match));
       app.querySelectorAll('[data-command]').forEach(el=>el.onclick=()=>{if(el.disabled)return;el.disabled=true;send({type:el.dataset.command,...(el.dataset.command==='nextHand'?{deck:shuffled()}:{})});});
-      app.querySelectorAll('[data-vote]').forEach(el=>el.onclick=()=>send({type:'vote',twice:el.dataset.vote==='yes'}));
+      app.querySelectorAll('[data-vote]').forEach(el=>el.onclick=()=>send({type:'vote',count:Number(el.dataset.vote)}));
       app.querySelectorAll('[data-bet]').forEach(el=>el.onclick=()=>{
         if(el.disabled)return;
         const v=Match.view(match),l=v.legal;let action=el.dataset.bet,amount;
-        if(action==='check'){el.disabled=true;peek(false);send({type:'bet',action});return;}
         if(action==='raise')amount=Number($('mp-amount').value);
         if(action==='all'){action=l.max>v.seats[v.actor].paid+l.owed?'raise':'call';amount=l.max;}
         confirmBet({type:'bet',action,amount},el.dataset.bet);
@@ -185,7 +194,7 @@
       const el=$('mp-equity-'+seat);if(!el)return;
       EquityBars.update(el,v.boards.map((_,j)=>{
         const r=publicResults[j],p=r?.players?.[k];
-        return EquityBars.html(error||publicError?undefined:p?.equity,r&&!r.exact,v.boards.length===2?(j?'B':'A'):'');
+        return EquityBars.html(error||publicError?undefined:p?.equity,r&&!r.exact,v.boards.length>1?('ABC'[j]):'');
       }).join('')+(error||publicError?'<span>Equity unavailable</span>':''));
     });
   }
@@ -307,8 +316,8 @@
     const amount=Number(slider.value),all=amount===l.max;
     const text=all?`All-in ${p.stack}`:`${p.paid+l.owed>0?'Raise to':'Bet'} ${amount}`;
     button.dataset.bet=all?'all':'raise';button.textContent=text;
-    const detail=`${amount} total this round · add ${amount-p.paid} now${l.min===l.max?' · Only legal raise: All-in':''}`;
-    $('raise-selection').textContent=detail;slider.setAttribute('aria-valuetext',detail);
+    const detail=`Pay ${amount-p.paid} chips now · ${amount} total this round${l.min===l.max?' · Only legal raise: All-in':''}`;
+    $('raise-selection').innerHTML=`<strong>Pay ${amount-p.paid} chips now</strong><span>${amount} total this round${l.min===l.max?' · Only legal raise: All-in':''}</span>`;slider.setAttribute('aria-valuetext',detail);
   }
   function beginGame(){
     mpPrepared=false;FX.clear();
@@ -343,11 +352,11 @@
     try{
       Match.command(match,command); // Validate without committing; confirmation applies the action once.
       const v=Match.view(match),p=v.seats[v.actor],l=v.legal;
-      const action=choice==='all'?`go all-in with your remaining ${p.stack} ${p.stack===1?'chip':'chips'}`:choice==='fold'?'fold this hand':choice==='call'?`call ${l.call} ${l.call===1?'chip':'chips'}`:`${l.owed||l.min>2?'raise':'bet'} to ${command.amount} chips (add ${command.amount-p.paid})`;
-      $('action-confirm').textContent=choice==='fold'?'Fold hand':choice==='all'||choice==='call'&&l.call===p.stack?'Go all-in · '+p.stack+' chips':choice==='call'?'Call '+l.call+' chips':(l.owed||l.min>2?'Raise to ':'Bet ')+command.amount+' chips';
-      $('action-title').textContent=choice==='fold'?'Fold hand?':choice==='all'||choice==='call'&&l.call===p.stack?'Commit all chips?':choice==='call'?'Call bet?':l.owed||l.min>2?'Raise bet?':'Place bet?';
+      const action=choice==='check'?'check without adding chips':choice==='all'?`go all-in with your remaining ${p.stack} ${p.stack===1?'chip':'chips'}`:choice==='fold'?'fold this hand':choice==='call'?`call ${l.call} ${l.call===1?'chip':'chips'}`:`${l.owed||l.min>2?'raise':'bet'} to ${command.amount} chips (add ${command.amount-p.paid})`;
+      $('action-confirm').textContent=choice==='check'?'Check':choice==='fold'?'Fold hand':choice==='all'||choice==='call'&&l.call===p.stack?'Go all-in · '+p.stack+' chips':choice==='call'?'Call '+l.call+' chips':(l.owed||l.min>2?'Raise to ':'Bet ')+command.amount+' chips';
+      $('action-title').textContent=choice==='check'?'Check turn?':choice==='fold'?'Fold hand?':choice==='all'||choice==='call'&&l.call===p.stack?'Commit all chips?':choice==='call'?'Call bet?':l.owed||l.min>2?'Raise bet?':'Place bet?';
       $('action-description').textContent=`${p.name} will ${action}. ${choice==='fold'?'Committed chips stay in the pot.':'This ends your turn. Your cards stay hidden.'}`;
-      $('action-confirm').className=choice==='fold'?'danger':choice==='all'||choice==='call'&&l.call===p.stack?'confirm-all':choice==='call'?'primary':'confirm-raise';
+      $('action-confirm').className=choice==='fold'?'danger':choice==='all'||choice==='call'&&l.call===p.stack?'confirm-all':choice==='call'||choice==='check'?'primary':'confirm-raise';
       pendingBet=command;$('confirm-action').showModal();
     }catch(e){message=e.message;renderApp();}
   }
@@ -398,6 +407,7 @@
   }
   async function pump(){
     if(screen!=='game'||!match||Match.view(match).phase!=='dealing')return;
+    collapsedBoards.delete(match.game.board);renderApp();
     const id=++pumpId;
     window.scrollTo({top:0,left:0,behavior:'instant'});
     if($('game-scroll'))$('game-scroll').scrollTop=0;

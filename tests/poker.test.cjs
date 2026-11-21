@@ -643,3 +643,54 @@ test('betting history groups blinds and actions by street, including reached no-
  }
  assert.throws(()=>P.create(11),/2–10/);
  });
+
+
+test('three runouts use one deck at every starting street, with ten players and correct burns',()=>{
+ for(const shared of [0,3,4]){
+  let s=P.create(10,deck());
+  while(s.hands.some(h=>h.length<2))s=P.next(s);
+  while(s.boards[0].length<shared||s.queue.length)s=P.next(s);
+  const prefix=[...s.boards[0]];
+  s=P.runBoards(s,3);
+  while(s.stage!=='complete')s=P.next(s);
+  assert.equal(s.boards.length,3);
+  for(const board of s.boards){assert.equal(board.length,5);assert.deepEqual(plain(board.slice(0,shared)),prefix);}
+  assert.equal(s.burns.length,shared===0?9:shared===3?7:5);
+  assert.equal(new Set(s.log.map(e=>e.card)).size,s.cursor);
+  assert.ok(s.cursor<=52);
+  assert.deepEqual(plain(s.log.filter(e=>e.kind==='board'&&e.stage==='river').map(e=>e.board)),[0,1,2]);
+ }
+});
+
+test('lowest run vote survives recovery and three boards settle all chips only at the end',()=>{
+ function voting(){
+  let s=M.start(['A','B','C'],deck());
+  while(s.phase==='dealing')s=M.command(s,{type:'deal'});
+  s=M.command(s,{type:'continue'});
+  while(!M.view(s).voting){s=M.command(s,{type:'ready'});const l=M.view(s).legal;s=M.command(s,{type:'bet',action:l.canRaise?'raise':'call',...(l.canRaise?{amount:l.max}:{})});}
+  return s;
+ }
+ for(const choices of [[3,2,3],[3,3,3],[3,1]]){
+  let s=voting();
+  for(const count of choices){s=M.command(M.command(s,{type:'ready'}),{type:'vote',count});s=M.restore(M.save(s));}
+  const count=Math.min(...choices);assert.equal(s.game.boards.length,count);
+  for(let guard=0;s.phase!=='result'&&guard<100;guard++){
+   assert.equal(s.game.betting.settled,false);
+   s=M.command(s,{type:s.phase==='public'?'continue':'deal'});
+  }
+  assert.equal(s.phase,'result');assert.equal(s.game.betting.stacks.reduce((a,b)=>a+b),60);
+  assert.equal(s.game.betting.pots[0].shares.length,count);
+  assert.equal(M.restore(M.save(s)).phase,'result');
+ }
+ const s=voting();assert.throws(()=>M.command(M.command(s,{type:'ready'}),{type:'vote',count:4}));
+});
+
+
+test('three runs split each side pot independently and assign remainder chips to earlier boards',()=>{
+ let s=advance(P.create(4,deck(),{stacks:[5,8,8,8]}),8);
+ while(s.betting.actor!==null){const l=P.legal(s);s=P.act(s,l.canRaise?'raise':'call',l.canRaise?l.max:undefined);}
+ s=P.runBoards(s,3);while(s.stage!=='complete')s=P.next(s);
+ assert.deepEqual(plain(s.betting.pots.map(p=>p.shares.map(b=>b.amount))),[[7,7,6],[3,3,3]]);
+ for(const pot of s.betting.pots)for(const share of pot.shares)assert.equal(share.awards.reduce((n,a)=>n+a.amount,0),share.amount);
+ assert.equal(s.betting.stacks.reduce((a,b)=>a+b),29);
+});

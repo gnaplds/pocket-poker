@@ -9,7 +9,7 @@ function card(c,extra='',id='') {
 }
 function communityMeta(boards,shared,stage,hand=null,betting=true){
   const label={dealing:'Hole cards',preflop:'Preflop',flop:'Flop',turn:'Turn',river:'River',showdown:'Showdown',complete:'Hand complete'}[stage]||stage;
-  return `<span class="board-meta">${hand===null?`${betting?'Blinds 1/2':'Independent deal'}${boards.length===2?' · Two runs':''}`:`Hand ${hand} · Blinds 1/2${boards.length===2?' · Two runs':''}`} ${shared?' · '+shared+' shared':''}<span class="board-stage">${safe(label)}</span></span>`;
+  return `<span class="board-meta">${hand===null?`${betting?'Blinds 1/2':'Independent deal'}${boards.length>1?' · '+boards.length+' runs':''}`:`Hand ${hand} · Blinds 1/2${boards.length>1?' · '+boards.length+' runs':''}`} ${shared?' · '+shared+' shared':''}<span class="board-stage">${safe(label)}</span></span>`;
 }
 function shuffled() {
   const d=Poker.fullDeck();
@@ -73,21 +73,21 @@ function simulationPercent(i,details=false){
   if(state.betting?.folded[i])return 'Folded';
   return state.boards.map((_,j)=>{
     const r=simEquity.results[j],p=r?.players?.[r.seats.indexOf(i)],estimated=r&&!r.exact;
-    return EquityBars.html(p?.equity,estimated,state.twice?(j?'B':'A'):'')+(details&&p?`<span class="equity-details">Win ${EquityBars.percent(p.win,estimated)} · Tie ${EquityBars.percent(p.tie,estimated)}</span>`:'');
+    return EquityBars.html(p?.equity,estimated,state.twice?('ABC'[j]):'')+(details&&p?`<span class="equity-details">Win ${EquityBars.percent(p.win,estimated)} · Tie ${EquityBars.percent(p.tie,estimated)}</span>`:'');
   }).join('');
 }
 function renderSimulationEquity(){
   const status=$('sim-equity-status');
-  const text=simEquity.status==='incomplete'?'Hand equity appears after the hole cards are dealt.':simEquity.status==='dealing'?'Hand equity waits for the completed street.':simEquity.status==='cancelled'?'Calculation cancelled.':simEquity.status==='error'?simEquity.error:simEquity.results.map((r,j)=>r?`Board ${j?'B':'A'} · ${r.exact?(r.done?'Exact':'Enumerating'):'Estimated'} · ${r.completed.toLocaleString()} / ${r.total.toLocaleString()} boards`:'').join(' · ')||'Calculating hand equity…';
+  const text=simEquity.status==='incomplete'?'Hand equity appears after the hole cards are dealt.':simEquity.status==='dealing'?'Hand equity waits for the completed street.':simEquity.status==='cancelled'?'Calculation cancelled.':simEquity.status==='error'?simEquity.error:simEquity.results.map((r,j)=>r?`Board ${'ABC'[j]} · ${r.exact?(r.done?'Exact':'Enumerating'):'Estimated'} · ${r.completed.toLocaleString()} / ${r.total.toLocaleString()} boards`:'').join(' · ')||'Calculating hand equity…';
   const action=simEquity.status==='running'?'cancel':['cancelled','error'].includes(simEquity.status)?'retry':'';
   if(status.dataset.action===action&&$('sim-equity-progress'))$('sim-equity-progress').textContent=text;
-  else {status.dataset.action=action;status.innerHTML=`<p id="sim-equity-progress">${safe(text)}</p>${action?`<button id="sim-equity-${action}">${action==='cancel'?'Cancel calculation':'Calculate again'}</button>`:''}<p>Hand equity compares all non-folded hands in one equal pot, not actual chip payouts or side pots. Estimates may vary.</p>`;}
+  else {const aboutOpen=$('sim-equity-about')?.open;status.dataset.action=action;status.innerHTML=`<p id="sim-equity-progress">${safe(text)}</p>${action?`<button id="sim-equity-${action}">${action==='cancel'?'Cancel calculation':'Calculate again'}</button>`:''}<details id="sim-equity-about"${aboutOpen?' open':''}><summary>About hand equity</summary><p>Hand equity compares all non-folded hands in one equal pot, not actual chip payouts or side pots. Estimates may vary.</p></details>`;}
   state.hands.forEach((_,i)=>{if($('sim-equity-seat-'+i))EquityBars.update($('sim-equity-seat-'+i),simulationPercent(i));if($('sim-equity-detail-'+i))EquityBars.update($('sim-equity-detail-'+i),simulationPercent(i,true));});
   if(action==='cancel')$('sim-equity-cancel').onclick=()=>{stopSimulationEquity();renderSimulationEquity();};
   if(action==='retry')$('sim-equity-retry').onclick=startSimulationEquity;
 }
 function destination(e) {
-  return e.kind==='hole'?name(e.player):e.kind==='burn'?`burn before ${e.stage} · Board ${e.board?'B':'A'}`:`${e.stage} · Board ${e.board?'B':'A'}`;
+  return e.kind==='hole'?name(e.player):e.kind==='burn'?`burn before ${e.stage} · Board ${'ABC'[e.board]}`:`${e.stage} · Board ${'ABC'[e.board]}`;
 }
 function replaceSimulation(action){
   if(state.stage==='complete'||(!state.cursor&&!(state.betting?.history.length>2)))return action();
@@ -97,13 +97,13 @@ function replaceSimulation(action){
 function simBoardVerdict(j){
   if(state.boards[j].length!==5||waiting())return '';
   const pots=state.betting?Poker.potResults(state):null;
-  if(pots)return '<div class="board-verdict" role="status">'+pots.map((p,k)=>{const share=p.shares[j];return share?`<div><strong>${k?'Side pot '+k:'Main pot'}</strong> · ${share.winners.map(i=>safe(name(i))).join(' &amp; ')} ${share.winners.length>1?'tie':'wins'} · ${share.amount} chips</div>`:'';}).join('')+(state.stage!=='complete'?'<small>Paid after both boards finish.</small>':'')+'</div>';
+  if(pots)return '<div class="board-verdict" role="status">'+pots.map((p,k)=>{const share=p.shares[j];return share?`<div class="board-payout"><div>${pots.length>1?`<span class="payout-label">${k?'Side pot '+k:'Main pot'}</span>`:''}<strong>${share.winners.map(i=>safe(name(i))).join(' &amp; ')}</strong> ${share.winners.length>1?'tie':'wins'}</div><span class="payout-amount">${share.amount} chips</span></div>`:'';}).join('')+(state.stage!=='complete'?'<small>Paid after all boards finish.</small>':'')+'</div>';
   const r=activeResult(state.boards[j]);return '<div class="board-verdict" role="status">'+r.winners.map(i=>safe(name(i))).join(' &amp; ')+(r.winners.length>1?' tie':' wins')+'</div>';
 }
 function simulationOutcome(i){
   if(state.stage!=='complete')return null;
   if(state.betting)return {won:state.betting.awards[i]>0,label:state.betting.awards[i]?'Won '+state.betting.awards[i]+' chips':'No pot won'};
-  const wins=state.boards.flatMap((board,j)=>{const r=activeResult(board);return r.winners.includes(i)?[state.twice?(r.winners.length>1?'Tied ':'Won ')+(j?'B':'A'):r.winners.length>1?'Tied winner':'Winner']:[];});
+  const wins=state.boards.flatMap((board,j)=>{const r=activeResult(board);return r.winners.includes(i)?[state.twice?(r.winners.length>1?'Tied ':'Won ')+('ABC'[j]):r.winners.length>1?'Tied winner':'Winner']:[];});
   return {won:wins.length>0,label:wins.join(' · ')||'No win'};
 }
 function winningCards(hole,board,key){
@@ -112,38 +112,39 @@ function winningCards(hole,board,key){
 }
 function winsBoard(s,i,j){return s.stage==='complete'&&!s.betting?.folded[i]&&(s.betting?Poker.potResults(s)?.some(p=>p.shares[j]?.winners.includes(i)):activeResult(s.boards[j])?.winners.includes(i));}
 function resultsHTML(){
-  return state.hands.map((h,i)=>`<details class="player-result"><summary><strong>${safe(name(i))}</strong>${state.betting?.folded[i]?' · Folded':''}${simulationOutcome(i)?`<span class="result-outcome ${simulationOutcome(i).won?'outcome-winner':''}">${simulationOutcome(i).label}</span>`:''}</summary><div class="sim-player-overview"><div class="hole-cards">${[0,1].map(j=>card(h[j])).join('')}</div><div id="sim-equity-detail-${i}" class="sim-equity-detail"></div></div>${state.boards.map((board,j)=>{const r=activeResult(board);return r?`<h3>${state.twice?'Board '+(j?'B':'A')+' · ':''}${r.hands[i].category}</h3>${winsBoard(state,i,j)?winningCards(h,board,`sim-${i}-${j}`):`<small>Best five cards</small><div class="best-cards">${r.hands[i].cards.map(c=>card(c,'small-card')).join('')}</div>`}`:'<p class="minor">Complete the flop to see the best five cards.</p>';}).join('')}</details>`).join('');
+  return state.hands.map((h,i)=>`<details class="player-result"><summary><strong>${safe(name(i))}</strong>${state.betting?.folded[i]?' · Folded':''}${simulationOutcome(i)?`<span class="result-outcome ${simulationOutcome(i).won?'outcome-winner':''}">${simulationOutcome(i).label}</span>`:''}</summary><div class="sim-player-overview"><div class="hole-cards">${[0,1].map(j=>card(h[j])).join('')}</div><div id="sim-equity-detail-${i}" class="sim-equity-detail"></div></div>${state.boards.map((board,j)=>{const r=activeResult(board);return r?`<h3>${state.twice?'Board '+('ABC'[j])+' · ':''}${r.hands[i].category}</h3>${winsBoard(state,i,j)?winningCards(h,board,`sim-${i}-${j}`):`<small>Best five cards</small><div class="best-cards">${r.hands[i].cards.map(c=>card(c,'small-card')).join('')}</div>`}`:'<p class="minor">Complete the flop to see the best five cards.</p>';}).join('')}</details>`).join('');
 }
 function celebrateSimulation(){
   if(state.stage!=='complete'||simCelebrated||$('simulation').hidden)return;
   simCelebrated=true;
   const winners=state.betting?state.betting.awards.flatMap((v,i)=>v?[i]:[]):[...new Set(state.boards.flatMap(b=>activeResult(b).winners))];
-  $('sim-winner-summary').innerHTML='<p>'+winners.map(i=>safe(name(i))).join(' &amp; ')+(winners.length===1?' wins':' share the wins')+'</p>'+state.boards.map((_,j)=>simBoardVerdict(j)?'<h3>Board '+(j?'B':'A')+'</h3>'+simBoardVerdict(j):'').join('');
+  $('sim-winner-summary').innerHTML='<p>'+winners.map(i=>safe(name(i))).join(' &amp; ')+(winners.length===1?' wins':' share the wins')+'</p>'+state.boards.map((_,j)=>simBoardVerdict(j)?'<h3>Board '+('ABC'[j])+'</h3>'+simBoardVerdict(j):'').join('');
   FX.winner($('sim-winner'),{mode:'sim',pots:state.betting?Poker.potResults(state):[],showdown:!state.betting||state.betting.folded.filter(f=>!f).length>1});
   if(!Preferences.reduced())$('sim-celebration').innerHTML=`<div class="hand-confetti" aria-hidden="true">${Array.from({length:36},(_,i)=>`<i style="--x:${i*37%100}%;--drift:${(i%7-3)*30}px;--delay:${i%8*.06}s;--spin:${180+i*29}deg;--color:${['#d4a52b','#4169e1','#c42f3d','#288362'][i%4]}"></i>`).join('')}</div>`;
 }
 $('sim-winner-close').onclick=()=>{$('sim-winner').close();$('sim-celebration').innerHTML='';$('shuffle').focus();};
 
 function render() {
+  $('players').dataset.count=String(state.players);
   $('simulation').dataset.reduced=String(Preferences.reduced());$('sim-winner').style.animation=Preferences.reduced()?'none':'';
   $('notice').textContent=notice;
   $('sim-pot').textContent=state.betting?'Pot '+state.betting.pot:'Deal-only mode';
   $('stage').innerHTML=communityMeta(state.boards,state.shared,state.stage,null,!!state.betting);
-  $('boards').innerHTML=state.boards.map((b,j)=>`<div class="board-line"><div class="board-name">${j?'B':'A'}</div><div class="board-cards">${Array.from({length:5},(_,i)=>card(b[i],i<state.shared?'shared':'',`board-${j}-${i}`)).join('')}</div></div>${simBoardVerdict(j)}`).join('');
+  $('boards').innerHTML=state.boards.map((b,j)=>`<div class="board-line"><div class="board-name">${'ABC'[j]}</div><div class="board-cards">${Array.from({length:5},(_,i)=>card(b[i],i<state.shared?'shared':'',`board-${j}-${i}`)).join('')}</div></div>${simBoardVerdict(j)}`).join('');
   const allResults=state.boards.map(activeResult);
   $('players').innerHTML=`<div class="mp-center"><div id="deck-source" class="deck-stack"></div><span id="burn-target" class="burn-slot">${state.burns.length}</span><p><strong id="remaining">${52-state.cursor}</strong> in deck</p></div>`+state.hands.map((h,i)=>{
     const outcome=simulationOutcome(i),winner=outcome?.won;
     const action=state.betting?.actions[i],color=action?.kind==='all'?'gold':action?.kind==='fold'?'red':action?.kind==='raise'?'blue':action?.kind==='call'&&state.betting.paid[i]===state.betting.currentBet?'green':'neutral';
-    const labels=allResults.map((r,b)=>r?`${state.twice?(b?'B: ':'A: '):''}${r.hands[i].category}`:'').filter(Boolean);
-    return `<div class="seat mp-seat action-${color} ${winner?'seat-winner':outcome?'seat-loser':''} ${state.betting?.actor===i?'acting':''} ${state.betting?.folded[i]?'folded':''}" style="${seatStyle(i,state.players)}${state.betting?.folded[i]&&FX.snapshot('sim',i)?`;height:${FX.snapshot('sim',i).height}px`: ''}">${state.betting?.folded[i]?`<div class="fold-marker"><strong>${safe(name(i))}</strong><span>${state.betting.stacks[i]} chips</span><span>Folded</span></div>`:''}<span class="seat-turn">${state.betting?.actor===i&&!outcome?'Acting':''}</span><div class="seat-name">${safe(name(i))}${i===0?'<span class="dealer" title="Dealer button">D</span>':''}</div><div class="seat-position">${Poker.positions(state.players)[i]}</div><div class="hole-cards">${[0,1].map(j=>card(h[j],'',`hole-${i}-${j}`)).join('')}</div><div class="seat-stack">${state.betting?state.betting.stacks[i]+' chips'+(action?'<span class="seat-action">'+safe(action.text)+'</span>':state.betting.paid[i]?' · '+state.betting.paid[i]+' in':''):''}</div><div class="seat-cat">${labels.join('<br>')}</div><div id="sim-equity-seat-${i}" class="sim-equity-seat"></div></div>`;
+    const labels=allResults.map((r,b)=>r?`${state.twice?('ABC'[b]+': '):''}${r.hands[i].category}`:'').filter(Boolean);
+    return `<div class="seat mp-seat action-${color} ${winner?'seat-winner':outcome?'seat-loser':''} ${state.betting?.actor===i?'acting':''} ${state.betting?.folded[i]?'folded':''}" style="${seatStyle(i,state.players)}">${state.betting?.folded[i]?`<div class="fold-marker"><strong>${safe(name(i))}</strong><span>${state.betting.stacks[i]} chips</span><span>Folded</span></div>`:''}<span class="seat-turn">${state.betting?.actor===i&&!outcome?'Acting':''}</span><div class="seat-name">${safe(name(i))}${i===0?'<span class="dealer" title="Dealer button">D</span>':''}</div><div class="seat-position">${Poker.positions(state.players)[i]}</div><div class="hole-cards">${[0,1].map(j=>card(h[j],'',`hole-${i}-${j}`)).join('')}</div><div class="seat-stack">${state.betting?state.betting.stacks[i]+' chips'+(action?'<span class="seat-action">'+safe(action.text)+'</span>':state.betting.paid[i]?' · '+state.betting.paid[i]+' in':''):''}</div><div class="seat-cat">${labels.join('<br>')}</div><div id="sim-equity-seat-${i}" class="sim-equity-seat"></div></div>`;
   }).join('');
-  $('table-foot').textContent=state.twice?(state.shared?'Dotted cards are shared, not drawn twice. ':'')+'Finish Board A, then Board B.':'Two clockwise passes • burn before every new street';
+  $('table-foot').textContent=state.twice?(state.shared?'Dotted cards are shared, not drawn twice. ':'')+'Finish boards in order: '+state.boards.map((_,i)=>'ABC'[i]).join(', ')+'.':'Two clockwise passes • burn before every new street';
   const expanded=[...$('results').querySelectorAll('details')].map(el=>el.open);
   $('results').innerHTML=resultsHTML();
   $('results').querySelectorAll('details').forEach((el,i)=>{el.open=!!expanded[i];});
   $('stats').innerHTML=`<span><strong>${state.cursor}</strong> consumed</span><span><strong>${52-state.cursor}</strong> left</span><span><strong>${state.players}</strong> players</span>`;
   $('deck-grid').innerHTML=state.deck.map((c,i)=>`<div class="deck-item ${i<state.cursor?'used':i===state.cursor?'next':''}" title="${i+1}. ${cardName(c)}${i<state.cursor?' → '+safe(destination(state.log[i])):''}"><div>${i+1}${i===state.cursor?' ↓':''}</div>${card(c)}</div>`).join('');
-  $('burn-list').innerHTML=state.burns.length?state.burns.map(b=>`<div class="result-row">${card(b.card,'small-card')}<span class="minor">Before ${b.stage} · Board ${b.board?'B':'A'}</span></div>`).join(''):'<p class="minor">No cards burned yet.</p>';
+  $('burn-list').innerHTML=state.burns.length?state.burns.map(b=>`<div class="result-row">${card(b.card,'small-card')}<span class="minor">Before ${b.stage} · Board ${'ABC'[b.board]}</span></div>`).join(''):'<p class="minor">No cards burned yet.</p>';
   $('log').innerHTML=state.log.map(e=>`<li><strong>${cardText(e.card)}</strong> → ${safe(destination(e))}</li>`).join('');
   renderBetting();controls();renderGuide();syncSimulationEquity();celebrateSimulation();
   $('remaining').textContent=52-state.cursor;
@@ -153,10 +154,10 @@ function controls() {
   $('simulation').dataset.tableState=state.stage==='complete'?'result':busy||playing?'dealing':waiting()?'turn':'ready';
   $('sim-street-actions').hidden=waiting()&&!simPaused;
   $('notice').hidden=waiting()&&!simPaused;
-  const board=state.boards[state.board],street=state.queue[0]?.stage||(board.length===0?'flop':board.length===3?'turn':'river');$('sim-deal').textContent=state.stage==='complete'?'Hand complete':state.stage==='dealing'?'Deal hole cards':(state.queue.length?'Finish ':'Deal ')+street+(state.twice?' · Board '+(state.board?'B':'A'):'');
+  const board=state.boards[state.board],street=state.queue[0]?.stage||(board.length===0?'flop':board.length===3?'turn':'river');$('sim-deal').textContent=state.stage==='complete'?'Hand complete':state.stage==='dealing'?'Deal hole cards':(state.queue.length?'Finish ':'Deal ')+street+(state.twice?' · Board '+('ABC'[state.board]):'');
   $('sim-deal').disabled=simPaused||busy||playing||guideBusy||waiting()||state.stage==='complete';
   $('next').disabled=simPaused||busy||playing||guideBusy||waiting()||state.stage==='complete';
-  $('twice').disabled=simPaused||busy||playing||guideBusy||!Poker.canRunTwice(state);
+  for(const id of ['once','twice','thrice'])$(id).disabled=simPaused||busy||playing||guideBusy||!Poker.canRunTwice(state);
   $('play').disabled=simPaused||guideBusy||waiting()||state.stage==='complete'||(busy&&!playing);
   $('play').textContent=playing?'Pause':busy?'Finishing card…':'Play';
   $('shuffle').disabled=busy||guideBusy; $('replay').disabled=busy||guideBusy;
@@ -187,7 +188,7 @@ async function oneCard() {
     notice=`Card ${event.position}: ${cardText(event.card)} → ${destination(event)}.`;
     if(event.end&&state.stage!=='complete') {
       playing=false;
-      notice+=waiting()?' Betting: '+name(state.betting.actor)+' to act.':' Stage complete. Inspect the hands, continue, or choose Run it twice.';
+      notice+=waiting()?' Betting: '+name(state.betting.actor)+' to act.':' Stage complete. Inspect the hands, continue, or choose 1–3 runs.';
     }
     if(state.stage==='complete'){playing=false;notice+=' Deal complete. See the winners for each board below.';}
   } finally {busy=false;render();unlock();}
@@ -225,7 +226,8 @@ async function shuffleNew(){
   }
   busy=false;reset(Number($('player-count').value),shuffled(),'New shuffled deck. Its displayed order is the order we will deal.');
 }
-function twice(){state=Poker.runTwice(state);notice='Two runs selected. Keep the same hands and shared board cards. Finish A, then B.';render();}
+function selectRuns(count){state=Poker.runBoards(state,count);notice=count+' run'+(count===1?'':'s')+' selected. Keep the same hands and finish each board in order.';render();}
+function twice(){selectRuns(2);}
 async function stage(){if(simPaused||busy||waiting())return false;const id=playbackId,unlock=FX.lockDealing();try{do{await oneCard();}while(!simPaused&&id===playbackId&&!$('simulation').hidden&&!waiting()&&state.stage!=='complete'&&!state.log.at(-1).end);}finally{unlock();}}
 const guides={
  normal:{text:'Follow one fixed four-player deal. Watch the two passes, each burn, and Seat 1 making a royal flush at the turn.',steps:[['Load example',()=>load('normal')],['Deal hole cards',stage],['Burn + flop',stage],['Burn + turn',stage],['Burn + river',stage]]},
@@ -247,7 +249,7 @@ function renderBetting() {
   $('sim-pause').onclick=()=>{simPaused=!simPaused;playing=false;playbackId++;render();};
   if(b?.actor!==null&&b?.actor!==undefined){
     const l=Poker.legal(state),i=b.actor;
-    const update=()=>{const value=Number($('raise-to').value),all=value===l.max;$('raise').textContent=all?'All-in '+b.stacks[i]:(b.currentBet?'Raise to ':'Bet ')+value;$('raise').dataset.bet=all?'all':'raise';$('sim-raise-selection').textContent=value+' total this round · '+(value-b.paid[i])+' chips now.';};
+    const update=()=>{const value=Number($('raise-to').value),all=value===l.max;$('raise').textContent=all?'All-in '+b.stacks[i]:(b.currentBet?'Raise to ':'Bet ')+value;$('raise').dataset.bet=all?'all':'raise';$('sim-raise-selection').innerHTML='<strong>Pay '+(value-b.paid[i])+' chips now</strong><span>'+value+' total this round</span>'; $('raise-to').setAttribute('aria-valuetext','Pay '+(value-b.paid[i])+' chips now; '+value+' total this round');};
     $('raise-to').oninput=update;update();
     const ask=(action,amount)=>simConfirm(()=>wager(action,amount),name(i)+': '+(action==='raise'?($('raise').textContent+'?'):action==='call'?'Call '+l.call+' chips?':action==='fold'?'Fold this hand?':'Check without adding chips?'),null,action==='fold'?'Fold hand':action==='call'&&l.call===b.stacks[i]||action==='raise'&&amount===l.max?'Go all-in · '+b.stacks[i]+' chips':action==='call'?'Call '+l.call+' chips':action==='raise'?$('raise').textContent+' chips':'Check');
     $('fold').onclick=()=>ask('fold');$('call-check').onclick=()=>ask(l.owed?'call':'check');$('raise').onclick=()=>ask('raise',Number($('raise-to').value));
@@ -287,7 +289,7 @@ $('betting-mode').onchange=()=>{const enabled=$('betting-mode').checked;$('betti
 $('next').onclick=()=>{invalidateGuide();return oneCard();};
 $('play').onclick=play;
 $('sim-deal').onclick=play;
-$('twice').onclick=()=>{invalidateGuide();twice();};
+for(const [id,count] of [['once',1],['twice',2],['thrice',3]])$(id).onclick=()=>{invalidateGuide();selectRuns(count);};
 $('shuffle').onclick=()=>replaceSimulation(shuffleNew);
 $('replay').onclick=()=>replaceSimulation(async()=>{invalidateGuide();reset(state.players,state.deck,'Same deck prepared. Choose Deal Hole Cards to replay.');await prepareSimulation();});
 $('player-count').onchange=()=>{const count=Number($('player-count').value);$('player-count').value=String(state.players);return replaceSimulation(()=>{$('player-count').value=String(count);return shuffleNew();});};
@@ -295,6 +297,7 @@ document.querySelectorAll('[data-guide]').forEach(b=>b.onclick=()=>{guideKey=b.d
 document.addEventListener('visibilitychange',()=>{if(document.hidden)cancelSimConfirm();if(document.hidden&&playing){playing=false;playbackId++;notice='Playback paused while the page was hidden.';controls();}});
 window.addEventListener('blur',()=>{if(busy||playing){simPaused=true;playing=false;playbackId++;controls();}});
 function seatStyle(i,n){
+  if(n===2)return `grid-column:${i===0?1:3};grid-row:1`;
   if(n>6){
     const rows=Math.ceil((n-2)/2);
     const topSeat=rows+1;

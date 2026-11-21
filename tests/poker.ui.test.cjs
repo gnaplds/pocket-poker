@@ -250,7 +250,7 @@ test('short stacks show a single all-in raise or only a legal call',()=>{
    assert.match(ids.get('action-description').textContent,/call 1 chip/);
   }else{
    assert.equal(ids.get('raise-action').textContent,'All-in 1');
-   assert.match(ids.get('raise-selection').textContent,/Only legal raise: All-in/);
+   assert.match(ids.get('raise-selection').innerHTML,/Only legal raise: All-in/);
    ids.get('raise-action').onclick();assert.match(ids.get('action-description').textContent,/all-in with your remaining 1 chip/);
   }
  }
@@ -261,7 +261,7 @@ test('all-in UI updates categories, board results and street history, then shows
  const cmd=type=>app.querySelectorAll('[data-command]').find(e=>e.dataset.command===type).onclick();
  ids.get('resume-game').onclick();
  assert.match(app.innerHTML,/class="seat-rank">High card/);
- for(let i=0;i<2;i++){cmd('ready');app.querySelectorAll('[data-vote]').find(e=>e.dataset.vote==='yes').onclick();}
+ for(let i=0;i<2;i++){cmd('ready');app.querySelectorAll('[data-vote]').find(e=>e.dataset.vote==='2').onclick();}
  assert.match(app.innerHTML,/A: High card/);assert.match(app.innerHTML,/B: High card/);
  assert.equal(ids.get('winner-popup').open,undefined);
  for(let i=0;i<2;i++){
@@ -314,7 +314,7 @@ test('a tied normal hand keeps results private until Showdown and announces both
  app.querySelectorAll('[data-bet]').find(e=>e.dataset.bet==='check').onclick();ids.get('action-confirm').onclick();
  assert.doesNotMatch(app.innerHTML,/id="board-verdict|class="seat-rank"/);assert.notEqual(ids.get('winner-popup').open,true);
  app.querySelectorAll('[data-command]').find(e=>e.dataset.command==='showdown').onclick();
- assert.match(app.innerHTML,/Blair &amp; Alex tie · 4 chips/);
+ assert.match(app.innerHTML,/<strong>Blair &amp; Alex<\/strong> tie<\/div><span class="payout-amount">4 chips<\/span>/);
  assert.equal(ids.get('winner-title').textContent,'Pot winners');
  assert.match(ids.get('winner-summary').innerHTML,/<strong>Alex<\/strong> receives 2 chips/);
  assert.match(ids.get('winner-summary').innerHTML,/<strong>Blair<\/strong> receives 2 chips/);
@@ -559,15 +559,22 @@ test('Opening leads directly to play or resume, with Study separate',()=>{
  p.ids.get('replace-cancel').onclick();assert.equal(p.saved,before);
 });
 
-test('Check acts directly once and hides private cards and expanded guidance',()=>{
+test('Check waits for confirmation, supports cancellation, and hides private guidance',()=>{
  const p=page(savedFlop('tap')),{ids}=p,app=ids.get('pocket-app');ids.get('resume-game').onclick();
  app.querySelectorAll('[data-command]').find(e=>e.dataset.command==='ready').onclick();
  assert.equal(ids.get('private-guidance').hidden,true);
  ids.get('details-toggle').onclick();ids.get('peek-button').onclick();
  assert.match(ids.get('private-guidance').innerHTML,/You have/);
  const before=JSON.parse(p.saved).moves.length,check=app.querySelectorAll('[data-bet]').find(e=>e.dataset.bet==='check');
- check.onclick();check.onclick();
- assert.notEqual(ids.get('confirm-action').open,true);
+ check.onclick();
+ assert.equal(ids.get('confirm-action').open,true);
+ assert.equal(ids.get('action-title').textContent,'Check turn?');
+ assert.equal(ids.get('action-confirm').textContent,'Check');
+ assert.equal(JSON.parse(p.saved).moves.length,before);
+ assert.equal(ids.get('private-guidance').innerHTML,'');
+ ids.get('action-cancel').onclick();
+ assert.equal(JSON.parse(p.saved).moves.length,before);
+ check.onclick();ids.get('action-confirm').onclick();ids.get('action-confirm').onclick();
  assert.equal(JSON.parse(p.saved).moves.length,before+1);
  assert.match(app.innerHTML,/Pass to/);assert.doesNotMatch(app.innerHTML,/You have/);
  app.querySelectorAll('[data-command]').find(e=>e.dataset.command==='ready').onclick();
@@ -743,6 +750,8 @@ test('simulation turn panel changes at street boundaries and confirmations state
  assert.equal(ids.get('simulation').dataset.tableState,'ready');
  assert.doesNotMatch(ids.get('results').innerHTML,/<details class="player-result" open/);
  await ids.get('sim-deal').onclick();
+ assert.match(ids.get('sim-raise-selection').innerHTML,/<strong>Pay 4 chips now<\/strong>/);
+ assert.match(ids.get('sim-equity-status').innerHTML,/<summary>About hand equity<\/summary>/);
  assert.equal(ids.get('simulation').dataset.tableState,'turn');assert.equal(ids.get('sim-street-actions').hidden,true);
  assert.doesNotMatch(ids.get('players').innerHTML,/Waiting for flop/);
  ids.get('fold').onclick();assert.equal(ids.get('sim-confirm-yes').textContent,'Fold hand');ids.get('sim-confirm-no').onclick();
@@ -759,4 +768,69 @@ test('equity name fields keep visible labels and card picker keeps a separate cl
  assert.match(ids.get('equity-picker').innerHTML,/<div class="picker-heading">.*id="eq-picker-close"/);
  assert.match(ids.get('equity-picker').innerHTML,/<div class="picker-cards">/);
  ids.get('eq-picker-close').onclick();assert.equal(ids.get('equity-picker').open,false);
+});
+
+
+test('eliminated seats leave the table layout without changing player identities or clockwise order',()=>{
+ const raw=JSON.parse(savedFlop());
+ raw.names=['Gone','Blair','Casey','Drew'];raw.moves=[];raw.phase='dealing';raw.voters=null;raw.runChoice=null;
+ raw.seed.stacks=[0,20,20,40];raw.seed.button=0;raw.seed.sb=1;raw.seed.bb=2;
+ const p=page(JSON.stringify(raw)),{ids}=p;
+ ids.get('resume-game').onclick();
+ const markup=ids.get('pocket-app').innerHTML;
+ assert.match(markup,/mp-oval seats-3/);
+ assert.match(markup,/<div hidden data-seat-index="0"/);
+ assert.match(markup,/data-seat-index="1"[^>]*grid-column:2;grid-row:3/);
+ assert.match(markup,/data-seat-index="2"[^>]*grid-column:1;grid-row:1/);
+ assert.match(markup,/data-seat-index="3"[^>]*grid-column:3;grid-row:1/);
+ assert.match(markup,/Dealer button · empty seat/);
+ assert.doesNotMatch(markup,/style="[^"]*;height:/);
+ assert.deepEqual(JSON.parse(p.saved).names,raw.names);
+});
+
+
+test('Simulation offers three runs and shows C equity, history, and results',async()=>{
+ const p=page(null,true,false,'/simulation'),{ids}=p;
+ await ids.get('sim-deal').onclick();
+ ids.get('raise-to').value='20';ids.get('raise-to').oninput();ids.get('raise').onclick();ids.get('sim-confirm-yes').onclick();
+ for(let i=0;i<3;i++){ids.get('call-check').onclick();ids.get('sim-confirm-yes').onclick();}
+ assert.equal(ids.get('thrice').disabled,false);ids.get('thrice').onclick();
+ assert.match(ids.get('boards').innerHTML,/board-2-4/);
+ assert.equal(p.workers.at(-1).request.visible.boards.length,3);
+ for(let i=0;i<9;i++){await ids.get('sim-deal').onclick();if(i<8)assert.notEqual(ids.get('sim-winner').open,true);}
+ assert.equal(ids.get('remaining').textContent,20);
+ assert.equal(ids.get('sim-winner').open,true);
+ assert.match(ids.get('sim-history').innerHTML,/River · C/);
+ assert.match(ids.get('sim-winner-summary').innerHTML,/Board C/);
+});
+
+
+test('heads-up tables place both players on the same row in both modes',async()=>{
+ const p=page(savedFlop()),{ids}=p;
+ ids.get('resume-game').onclick();
+ const markup=ids.get('pocket-app').innerHTML;
+ assert.match(markup,/mp-oval seats-2/);
+ assert.match(markup,/data-seat-index="0"[^>]*grid-column:1;grid-row:1/);
+ assert.match(markup,/data-seat-index="1"[^>]*grid-column:3;grid-row:1/);
+ const sim=page(null,true,false,'/simulation');
+ sim.ids.get('player-count').value='2';await sim.ids.get('player-count').onchange();
+ assert.equal(sim.ids.get('players').dataset.count,'2');
+ assert.match(sim.ids.get('players').innerHTML,/grid-column:1;grid-row:1/);
+ assert.match(sim.ids.get('players').innerHTML,/grid-column:3;grid-row:1/);
+});
+
+
+test('community board disclosure hides cards and verdict without changing the saved hand',()=>{
+ const p=page(savedFlop()),{ids}=p,app=ids.get('pocket-app');ids.get('resume-game').onclick();
+ const saved=p.saved;
+ app.querySelectorAll('[data-board-toggle]')[0].onclick();
+ assert.equal(ids.get('mp-board-cards-0').hidden,true);
+ assert.equal(ids.get('mp-board-result-0').hidden,true);
+ assert.equal(p.saved,saved);
+ app.querySelectorAll('[data-command]').find(e=>e.dataset.command==='ready').onclick();
+ assert.equal(ids.get('mp-board-cards-0').hidden,true);
+ assert.match(app.innerHTML,/aria-expanded="false" aria-controls="mp-board-cards-0 mp-board-result-0"/);
+ app.querySelectorAll('[data-board-toggle]')[0].onclick();
+ assert.equal(ids.get('mp-board-cards-0').hidden,false);
+ assert.equal(ids.get('mp-board-result-0').hidden,false);
 });

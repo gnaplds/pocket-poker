@@ -296,7 +296,7 @@ html :is(.game-screen,#simulation) .mp-seat.action-green{--seat-marker:var(--sea
 html :is(.game-screen,#simulation) .mp-seat.action-red{--seat-marker:var(--seat-red)}
 html :is(.game-screen,#simulation) .mp-seat.action-gold{--seat-marker:var(--seat-gold)}
 html:root :is(.game-screen,#simulation) .mp-seat[class*="action-"]{border-color:color-mix(in srgb,var(--seat-marker) 60%,var(--seat-surface))}
-html .game-screen .mp-seat.acting,html #simulation .players .seat.acting{outline:2px solid var(--seat-ink);outline-offset:3px}
+html .game-screen .mp-seat.acting,html #simulation .players .seat.acting{outline:5px dashed var(--seat-ink);outline-offset:2px}
 .seat-turn{display:block;min-height:17px;font-size:12px;line-height:17px;font-weight:600}
 .seat-action{display:block}
 .mp-seat .seat-note:not(:empty)::before,.seat-action::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--seat-marker);margin-right:5px;vertical-align:1px}
@@ -324,7 +324,7 @@ button:active:not(:disabled){filter:brightness(.88)}
 }
 
 /* Reserve border space in every action state; let the status color read at a glance. */
-html:root[data-theme] :is(.game-screen,#simulation) .mp-seat[class]{border:3px solid var(--seat-marker)}
+html:root[data-theme] :is(.game-screen,#simulation) .mp-seat[class]{border:5px solid var(--seat-marker)}
 /* Keep the original seat footprint, but show only a compact folded marker. */
 html:root[data-theme] :is(.game-screen,#simulation) .mp-seat.folded[class]{background:transparent;border-color:transparent;box-shadow:none;outline:none}
 .mp-seat.folded> :not(.fold-marker){visibility:hidden}
@@ -335,5 +335,38 @@ html:root[data-theme] :is(.game-screen,#simulation) .mp-seat.folded[class]{backg
 
 :root{--fold-marker-surface:#e5e7e3}
 :root[data-theme="dark"]{--fold-marker-surface:#222725}
-/* Reserve two label lines so sampled percentages cannot move neighboring seats. */
-.mp-seat .equity-bar-label{min-height:2.8em}
+/* Keep the equity label close to its track; numbers use stable digit widths. */
+.mp-seat .equity-bar-label{min-height:0;font-variant-numeric:tabular-nums;margin-bottom:3px}
+
+/* Keep the immediate cost and current turn easy to scan. */
+:is(#raise-selection,#sim-raise-selection) strong{display:block;color:var(--ink);font-size:14px;font-variant-numeric:tabular-nums}
+:is(#raise-selection,#sim-raise-selection) span{display:block}
+.mp-seat.acting .seat-turn{font-weight:750;text-decoration:underline;text-underline-offset:3px}
+#sim-equity-about{margin-top:8px}
+
+/* Hidden seats keep engine indices stable without occupying a table position. */
+.game-screen .mp-oval .mp-seat[hidden]{display:none}
+
+.run-options{display:flex;gap:8px;flex-basis:100%}
+.run-options button{flex:1;min-width:0;white-space:normal}
+
+/* Results belong to the board, rather than a separate alert box. */
+html[data-theme] .mp-board .board-verdict{background:transparent;color:#fffcef;border-radius:0;padding:2px 0 6px;margin:0;border:0;font-size:12px;line-height:1.4}
+.board-payout{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:baseline;text-align:left}
+.board-payout+.board-payout{margin-top:6px}
+.board-payout>div{overflow-wrap:anywhere;min-width:0}
+.payout-label{display:block;font-size:12px;font-weight:400}
+.payout-amount{white-space:nowrap;font-variant-numeric:tabular-nums}
+.mp-board .board-verdict small{display:block;font-size:12px;color:#e0e8df;margin-top:2px}
+
+/* Heads-up: both players share one row with the deck and burns between them. */
+.game-screen .mp-oval.seats-2 .mp-center,#simulation .players[data-count="2"] .mp-center{grid-area:1 / 2}
+
+/* Board labels remain reachable when their cards and verdict are collapsed. */
+html[data-theme] .mp-board .board-toggle{display:flex;align-items:center;justify-content:center;gap:4px;flex-shrink:0;width:44px;min-height:44px;padding:0;background:transparent;border:1px solid transparent;color:#fffcef;font-size:13px;border-radius:4px;box-shadow:none}
+@media(hover:hover){html[data-theme] .mp-board .board-toggle:hover:not(:disabled){background:#ffffff12;border-color:transparent}}
+html[data-theme] .mp-board .board-toggle:focus-visible{outline:2px solid #fffcef;outline-offset:2px}
+.board-toggle>span{display:block;width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg);margin:0 1px 3px 2px}
+.board-toggle[aria-expanded="false"]>span{transform:rotate(-45deg);margin-bottom:0}
+.mp-board .board-cards[hidden]{display:none}
+.mp-board .board-line:has(.board-cards[hidden]){display:inline-flex;vertical-align:top;justify-content:flex-start;width:auto;margin:0 8px 0 0;gap:0}
