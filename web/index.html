@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pocket Poker</title><script id="poker-preferences" src="/scripts/preferences.js"></script><link rel="stylesheet" href="/styles/app.css?v=20261121-seats2"><link rel="icon" type="image/svg+xml" href="/favicon.svg"></head><body><script id="poker-motion" src="/scripts/motion.js?v=20261121-seats"></script>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pocket Poker</title><script id="poker-preferences" src="/scripts/preferences.js"></script><link rel="stylesheet" href="/styles/app.css?v=20261121-collapsed-row"><link rel="icon" type="image/svg+xml" href="/favicon.svg"></head><body><script id="poker-motion" src="/scripts/motion.js?v=20261121-seats"></script>
 
 <dialog class="confirmation-dialog" id="replace-game" aria-labelledby="replace-title"><h2 id="replace-title">Replace the saved game?</h2><p>Replace the saved game and its chip stacks with this new game. The old game cannot be restored.</p><div class="action-row"><button id="replace-confirm" class="danger">Start new game</button><button id="replace-cancel" autofocus>Keep saved game</button></div></dialog>
 <dialog class="confirmation-dialog" id="home-confirm" aria-labelledby="home-title"><h2 id="home-title">Leave game?</h2><p>Your progress will be saved on this device. Choose Continue game on Home to return.</p><div class="action-row"><button id="home-save" class="primary">Save &amp; leave</button><button id="home-cancel" autofocus>Stay here</button></div></dialog>
@@ -36,22 +36,22 @@
 </div>
 <section class="sim-turn-panel" aria-label="Simulation turn controls">
 <div class="notice" id="notice" role="status" aria-live="polite"></div>
-<div id="sim-street-actions" class="action-row"><button id="sim-deal" class="primary">Deal hole cards</button><button id="twice">Run it twice</button></div>
+<div id="sim-street-actions" class="action-row"><button id="sim-deal" class="primary">Deal hole cards</button><div class="run-options" role="group" aria-label="Number of runs"><button id="once">Run once</button><button id="twice">Run twice</button><button id="thrice">Run 3 times</button></div></div>
 <section class="turn-box" id="betting-panel"></section>
 </section>
 </div>
 
 <script id="poker-engine" src="/scripts/poker.js"></script>
 
-<script id="equity-bars" src="/scripts/equity-bars.js"></script>
+<script id="equity-bars" src="/scripts/equity-bars.js?v=20261121-percent-only"></script>
 <script id="equity-engine" src="/scripts/equity.js"></script>
 <script id="poker-session" src="/scripts/session.js"></script>
 <script src="/scripts/random.js"></script>
-<script src="/scripts/simulation.js?v=20261121-seats"></script>
+<script src="/scripts/simulation.js?v=20261121-board-label"></script>
 
 
 <script id="poker-routes" src="/scripts/routes.js"></script>
-<script src="/scripts/app.js?v=20261121-seats"></script>
+<script src="/scripts/app.js?v=20261121-board-label"></script>
 
 
 

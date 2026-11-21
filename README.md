@@ -10,13 +10,13 @@ Texas Hold’em for **2–10 friends sharing one phone**, with open-card Simulat
 
 Pass & Play, Simulation, and the Equity calculator each support 2–10 players.
 
-- **Pass & Play:** 20 chips per player, fixed 1/2 blinds, private Peek, betting confirmations, side pots, rotating positions, saved games, and unanimous run-it-twice voting. Results offer Next hand or a same-group Rematch.
+- **Pass & Play:** 20 chips per player, fixed 1/2 blinds, private Peek, betting confirmations, side pots, rotating positions, saved games, and 1–3 runout voting (the lowest choice wins). Results offer Next hand or a same-group Rematch.
 - **Simulation:** visible hole cards, independent 20-chip deals, manual betting for every seat, street pauses, replay of the same deck, and optional per-card Study Tools.
 - **Equity calculator:** enter two known cards for each player and one community board. Preflop uses 20,000 sampled boards; postflop enumerates every possible remaining board.
 
 **Hand rankings** lists hands from royal flush to high card. Five-card examples stay visible in a compact list; tap each entry to expand its explanation and tie rules.
 
-Simulation and public all-in multiplayer seats show equity bars, with separate A/B bars for two runouts. The calculator shows bars beside each hand. Percentages remain readable: red → amber → green shows absolute equity; zero has an empty gray bar. Estimates use ≈. Equity includes split-pot shares and does not predict actual side-pot payouts.
+Simulation and public all-in multiplayer seats show equity bars, with separate A/B/C bars for up to three runouts. The calculator shows bars beside each hand. Percentages remain readable: red → amber → green shows absolute equity; zero has an empty gray bar. Estimates use ≈. Equity includes split-pot shares and does not predict actual side-pot payouts.
 
 Shuffle preparation, card dealing, showdown reveals, winning-card emphasis, and ordered chip collection give feedback without controlling payouts. Dealing blocks scrolling and taps until the next pause. Reduced motion skips decorative travel and pulses; private Peek always reveals and conceals immediately.
 
@@ -96,4 +96,4 @@ The research screenshot `.scratch/mobile-calculator/research/pokernet-demo-river
 
 ### Interface consistency
 
-Simulation keeps betting controls below a scrollable table, with the board visible during play. Player details start closed, and action confirmations name the decision and chip amount. Settings shows 10/T and hold/tap choices directly. The Equity card picker keeps its Close button visible while cards scroll. Both themes use the same heading scale. Solid 3 px action borders make betting status visible. Folded players become compact gray markers with their name and chips, preserving clockwise seating; reduced motion skips the brief shrink.
+Simulation keeps betting controls below a scrollable table, with the board visible during play. Player details start closed, and action confirmations name the decision and chip amount. Settings shows 10/T and hold/tap choices directly. The Equity card picker keeps its Close button visible while cards scroll. Both themes use the same heading scale. Solid 5 px action borders make betting status visible. Folded players become compact gray markers with their name and chips, preserving clockwise seating; reduced motion skips the brief shrink.

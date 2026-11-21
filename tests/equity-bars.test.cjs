@@ -7,6 +7,7 @@ test('equity distinguishes zero, tiny positives, estimates and unavailable value
  assert.match(b.html(.00001),/&lt;0.1%/);assert.doesNotMatch(b.html(.00001),/background-color:#929b96/);
  assert.match(b.html(0,true),/≈ 0.0%/);assert.match(b.html(.5,false,'B'),/B · Hand equity/);
  assert.match(b.html(undefined),/Hand equity unavailable/);assert.doesNotMatch(b.html(undefined),/role="meter"/);
+ assert.match(b.html(.5,false,'B'),/class="equity-bar-label">B · 50.0%<\/span>/);
  assert.match(b.html(1),/transform:scaleX\(1\)/);
 });
 test('bar updates animate only valid-to-valid values and honor reduced motion',()=>{

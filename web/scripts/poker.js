@@ -156,20 +156,24 @@ var Poker = (() => {
     if(event.end) {
       s.stage=event.stage;
       if(event.stage==='river') {
-        if(s.twice && s.board===0) { s.board=1; s.stage=s.shared===0?'preflop':s.shared===3?'flop':'turn'; }
+        if(s.board<s.boards.length-1) { s.board++; s.stage=s.shared===0?'preflop':s.shared===3?'flop':'turn'; }
         else s.stage=s.betting?'river':'complete';
       }
     }
     if(event.end&&s.betting) {openRound(s);finishRound(s);}
     return s;
   }
-  function canRunTwice(s) { return !s.twice && !s.queue.length && ['preflop','flop','turn'].includes(s.stage) && (!s.betting || (s.betting.actor===null && s.betting.folded.filter(f=>!f).length>1 && s.betting.stacks.filter((chips,i)=>!s.betting.folded[i]&&chips>0).length<=1)); }
-  function runTwice(state) {
-    if(!canRunTwice(state)) throw Error('Choose two runs after the hole cards, flop, or turn.');
-    const s=JSON.parse(JSON.stringify(state));
-    s.twice=true; s.shared=s.boards[0].length; s.boards.push([...s.boards[0]]);
+  function canRunTwice(s) { return !s.runCount && !s.twice && !s.queue.length && ['preflop','flop','turn'].includes(s.stage) && (!s.betting || (s.betting.actor===null && s.betting.folded.filter(f=>!f).length>1 && s.betting.stacks.filter((chips,i)=>!s.betting.folded[i]&&chips>0).length<=1)); }
+  function runBoards(state,count) {
+    if(![1,2,3].includes(count)||!canRunTwice(state))throw Error('Choose 1–3 runs after the hole cards, flop, or turn.');
+    const s=JSON.parse(JSON.stringify(state)),shared=s.boards[0].length;
+    const needed=({0:8,3:4,4:2})[shared]*count;
+    if(s.deck.length-s.cursor<needed)throw Error('Not enough cards for these runs.');
+    s.runCount=count;s.twice=count>1;s.shared=shared;
+    s.boards=Array.from({length:count},()=>[...state.boards[0]]);
     return s;
   }
+  function runTwice(state) {return runBoards(state,2);}
   function rank(cards) {
     if(cards.length<5 || cards.length>7 || new Set(cards).size!==cards.length || cards.some(c=>!fullDeck().includes(c))) throw Error('Rank 5–7 unique valid cards.');
     let best=null;
@@ -246,5 +250,5 @@ var Poker = (() => {
     const max=Math.max(...ranked.map(h=>h.score));
     return {hands:ranked,winners:ranked.flatMap((h,i)=>h.score===max?[i]:[])};
   }
-  return {create,next,fullDeck,runTwice,canRunTwice,rank,guide,results,positions,act,legal,nextHand,seatPositions,showdown,potResults};
+  return {create,next,fullDeck,runBoards,runTwice,canRunTwice,rank,guide,results,positions,act,legal,nextHand,seatPositions,showdown,potResults};
 })();

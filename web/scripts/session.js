@@ -3,7 +3,7 @@ var Match=(()=>{
   function start(names,deck,button=0,reveal='hold',guidance=true){
     if(!Array.isArray(names)||names.some(n=>typeof n!=='string'||!n.trim()||n.length>20)||!['hold','tap'].includes(reveal)||typeof guidance!=='boolean')throw Error('Enter valid names and game settings.');
     const game=Poker.create(names.length,deck,{button,manualShowdown:true});
-    return {version:2,names:names.map(n=>n.trim()),reveal,guidance,hand:1,game,seed:seed(game),moves:[],phase:'dealing',peeking:false,voters:null,runChoice:null};
+    return {version:2,names:names.map(n=>n.trim()),reveal,guidance,hand:1,game,seed:seed(game),moves:[],phase:'dealing',peeking:false,voters:null,runChoice:null,voteMin:3};
   }
   const seed=g=>({deck:[...g.deck],stacks:g.betting.stacks.map((v,i)=>v+g.betting.paid[i]),button:g.button,sb:g.sb,bb:g.bb});
   function finishPublicRunout(s){
@@ -36,16 +36,17 @@ var Match=(()=>{
       if(s.phase!=='turn'||s.voters)throw Error('Acknowledge your betting turn first.');
       s.game=Poker.act(s.game,c.action,c.amount);s.moves.push({type:'bet',action:c.action,...(c.amount===undefined?{}:{amount:c.amount})});route(s,s.game.betting.actor===null);
     }else if(c.type==='vote'){
-      if(s.phase!=='turn'||!s.voters||typeof c.twice!=='boolean')throw Error('Acknowledge your runout choice first.');
-      s.peeking=false;
-      if(c.twice&&s.voters.length>1){s.voters.shift();s.phase='handoff';}
-      else {s.runChoice=c.twice?2:1;if(c.twice){s.game=Poker.runTwice(s.game);s.moves.push({type:'twice'});}s.voters=null;s.phase='public';}
+      const count=c.count??(typeof c.twice==='boolean'?(c.twice?2:1):null);
+      if(s.phase!=='turn'||!s.voters||![1,2,3].includes(count))throw Error('Acknowledge your runout choice first.');
+      s.peeking=false;s.voteMin=Math.min(s.voteMin??3,count);
+      if(s.voteMin>1&&s.voters.length>1){s.voters.shift();s.phase='handoff';}
+      else {s.runChoice=s.voteMin;if(s.runChoice>1){s.game=Poker.runBoards(s.game,s.runChoice);s.moves.push({type:'runs',count:s.runChoice});}s.voters=null;s.phase='public';}
     }else if(c.type==='showdown'){
       if(s.phase!=='showdown')throw Error('Wait for Showdown.');
       s.game=Poker.showdown(s.game);s.moves.push({type:'showdown'});route(s);
     }else if(c.type==='nextHand'){
       if(s.phase!=='result')throw Error('Finish this hand first.');
-      s.game=Poker.nextHand(s.game,c.deck);s.seed=seed(s.game);s.moves=[];s.hand++;s.phase='dealing';s.peeking=false;s.voters=null;s.runChoice=null;
+      s.game=Poker.nextHand(s.game,c.deck);s.seed=seed(s.game);s.moves=[];s.hand++;s.phase='dealing';s.peeking=false;s.voters=null;s.runChoice=null;s.voteMin=3;
     }else throw Error('Unknown game action.');
     return s;
   }
@@ -53,7 +54,7 @@ var Match=(()=>{
     const streets=[{stage:'preflop',board:0},...g.log.filter(e=>e.kind==='board'&&e.end)];
     return streets.map(({stage,board})=>{
       const size={preflop:0,flop:3,turn:4,river:5}[stage];
-      return {label:stage[0].toUpperCase()+stage.slice(1)+(g.twice&&size>g.shared?' · '+(board?'B':'A'):''),actions:copy((g.betting?.history||[]).filter(a=>a.stage===stage&&a.board===board))};
+      return {label:stage[0].toUpperCase()+stage.slice(1)+(g.twice&&size>g.shared?' · '+('ABC'[board]):''),actions:copy((g.betting?.history||[]).filter(a=>a.stage===stage&&a.board===board))};
     });
   }
   function view(s){
@@ -73,12 +74,12 @@ var Match=(()=>{
       pots:b.settled?copy(b.pots):[],history:copy(b.history),historyRounds:historyRounds(g),winner:b.settled&&b.stacks.filter(v=>v>0).length===1?b.stacks.findIndex(v=>v>0):null};
   }
   function save(s){
-    return JSON.stringify({version:2,names:s.names,reveal:s.reveal,guidance:s.guidance,hand:s.hand,seed:s.seed,moves:s.moves,phase:s.phase,voters:s.voters,runChoice:s.runChoice});
+    return JSON.stringify({version:2,names:s.names,reveal:s.reveal,guidance:s.guidance,hand:s.hand,seed:s.seed,moves:s.moves,phase:s.phase,voters:s.voters,runChoice:s.runChoice,voteMin:s.voteMin});
   }
   function restore(text){
     if(typeof text!=='string'||text.length>1000000)throw Error('Invalid saved game.');
     const raw=JSON.parse(text);
-    if(![1,2].includes(raw.version)||!Number.isSafeInteger(raw.hand)||raw.hand<1||!Array.isArray(raw.moves)||raw.moves.length>500||![null,1,2].includes(raw.runChoice)||!['dealing','public','turn','handoff','showdown','result'].includes(raw.phase))throw Error('Unsupported saved game.');
+    if(![1,2].includes(raw.version)||!Number.isSafeInteger(raw.hand)||raw.hand<1||!Array.isArray(raw.moves)||raw.moves.length>500||![null,1,2,3].includes(raw.runChoice)||!['dealing','public','turn','handoff','showdown','result'].includes(raw.phase))throw Error('Unsupported saved game.');
     const s=start(raw.names,raw.seed.deck,raw.seed.button,raw.reveal,raw.guidance===undefined?true:raw.guidance);
     s.game=Poker.create(s.names.length,raw.seed.deck,{...raw.seed,manualShowdown:true});
     if(raw.seed.stacks.reduce((a,b)=>a+b,0)!==s.names.length*20)throw Error('Saved chip totals do not match.');
@@ -87,16 +88,19 @@ var Match=(()=>{
       if(move.type==='deal')s.game=Poker.next(s.game);
       else if(move.type==='bet')s.game=Poker.act(s.game,move.action,move.amount);
       else if(move.type==='showdown')s.game=Poker.showdown(s.game);
+      else if(move.type==='runs'&&[2,3].includes(move.count))s.game=Poker.runBoards(s.game,move.count);
       else if(move.type==='twice')s.game=Poker.runTwice(s.game);
       else throw Error('Invalid saved action.');
     }
     s.seed=copy(raw.seed);s.moves=copy(raw.moves);s.hand=raw.hand;s.runChoice=raw.runChoice;s.voters=raw.voters;
     // Old completed saves already awarded their pots; preserve that result in the new replay.
     if(raw.version===1&&raw.phase==='result'&&s.game.stage==='showdown'){s.game=Poker.showdown(s.game);s.moves.push({type:'showdown'});}
-    if((s.runChoice===2)!==s.game.twice)throw Error('Invalid saved runout.');
+    if((s.runChoice>1?s.runChoice:1)!==s.game.boards.length)throw Error('Invalid saved runout.');
+    s.voteMin=raw.voteMin??(raw.voters&&raw.voters.length<s.game.betting.folded.filter(f=>!f).length?2:3);
+    if(![1,2,3].includes(s.voteMin))throw Error('Invalid saved vote minimum.');
     if(s.voters!==null){
       const eligible=Array.from({length:s.names.length},(_,k)=>(s.game.button+1+k)%s.names.length).filter(i=>!s.game.betting.folded[i]);
-      if(!Array.isArray(s.voters)||!s.voters.length||!Poker.canRunTwice(s.game)||s.runChoice!==null||JSON.stringify(s.voters)!==JSON.stringify(eligible.slice(-s.voters.length)))throw Error('Invalid saved vote.');
+      if(s.voteMin===1||!Array.isArray(s.voters)||!s.voters.length||!Poker.canRunTwice(s.game)||s.runChoice!==null||JSON.stringify(s.voters)!==JSON.stringify(eligible.slice(-s.voters.length)))throw Error('Invalid saved vote.');
     }
     finishPublicRunout(s);
     s.phase=s.game.betting.settled?'result':s.game.stage==='showdown'?'showdown':s.voters?'handoff':s.game.betting.actor!==null?(raw.phase==='public'?'public':'handoff'):'public';

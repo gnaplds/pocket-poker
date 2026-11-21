@@ -57,3 +57,11 @@ test('Simulation evaluates two shared-prefix boards separately and resolves a fo
  const survivor=[...E.simulation({...input,folded:[true,false],boards:[[]]})].at(-1);
  assert.deepEqual(plain(survivor.seats),[1]);assert.equal(survivor.players[0].equity,1);assert.equal(survivor.completed,1);
 });
+
+
+test('three-board equity excludes exposed cards from both other boards',()=>{
+ const r=[...E.simulation({hands:[['As','Ad'],['Ks','Kd']],boards:[['2c','3h','7d','9s','Jc'],['2c','3h','7d','Kh','4c'],['2c','3h','7d','Ac']],folded:[false,false],burns:[]})].filter(r=>r.done);
+ assert.deepEqual(plain(r.map(r=>r.board)),[0,1,2]);
+ assert.equal(r[0].players[0].equity,1);assert.equal(r[1].players[1].equity,1);
+ assert.equal(r[2].total,40);assert.equal(r[2].players[0].equity,1);
+});

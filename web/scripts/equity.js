@@ -30,7 +30,7 @@ var Equity=(()=>{
     yield report();
   }
   function* simulation({hands,boards,folded,burns},randomBelow){
-    if(!Array.isArray(boards)||boards.length<1||boards.length>2||!Array.isArray(folded)||folded.length!==hands.length||folded.some(f=>typeof f!=='boolean')||!Array.isArray(burns))throw Error('Invalid visible deal.');
+    if(!Array.isArray(boards)||boards.length<1||boards.length>3||!Array.isArray(folded)||folded.length!==hands.length||folded.some(f=>typeof f!=='boolean')||!Array.isArray(burns))throw Error('Invalid visible deal.');
     const seats=hands.flatMap((h,i)=>folded[i]?[]:[i]);
     if(!seats.length)throw Error('A hand needs an eligible player.');
     for(let j=0;j<boards.length;j++){
