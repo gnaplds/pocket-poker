@@ -60,8 +60,20 @@ Choose Hand rankings from Study for ten examples, strongest first. Card examples
 
 ## Settings
 
-On Home, open the square gear beside **Study**. The gear is also available in setup and each mode. Choose **10 / T**, **Motion: Follow device / Reduced**, and **Dealing speed: 0.5× / 1× / 2× / 4×**. Simulation Study Tools uses the same motion and speed choices. Reduced motion skips animation waits; readiness pauses stay.
+On Home, open the square gear beside **Study**. The gear is also available in setup and each mode. Toggle **Dark mode** for charcoal-and-green surfaces with cream cards. It defaults to off and saves per browser. Switching keeps your current inputs and place on the screen. Choose **10 / T**, **Motion: Follow device / Reduced**, and **Dealing speed: 0.5× / 1× / 2× / 4×**. Simulation Study Tools uses the same motion and speed choices. Reduced motion skips animation waits; readiness pauses stay.
 
 In Pass & Play, **This game** changes card viewing and guidance for everyone in that saved game. Elsewhere, **New-game defaults** prefills setup and leaves existing saved games unchanged. Rematches retain their game settings.
 
 Changes apply immediately. A warning appears if they cannot be saved. Close, Escape, or browser Back within the app closes settings first. Private cards and guidance hide on opening; closing normally keeps the same turn and requires another Peek. If the app loses focus, the usual handoff and recovery rules apply. Settings is unavailable during dealing and while another dialog is open.
+
+### Reading the table and changing settings
+
+Simulation uses a bottom turn panel. Scroll the table to inspect other players without losing the betting controls; during dealing the controls disappear so the board and card movement have room. Player details start closed and can be opened individually. Folded seats retain their label and readable chip counts.
+
+Confirmations show the exact action, such as **Call 2 chips** or **Fold hand**. In Settings, select **10 / T** or **Hold to peek / Tap to reveal** directly; hand guidance has an on/off switch. Changes still save immediately and preserve the same privacy rules. In Equity, player names have visible labels and the card picker's Close button stays above its scrolling card list.
+
+Settings also lets you hide seat-position labels in both play modes. Dealing speed uses a four-stop slider (0.5×, 1×, 2×, 4×). Reduce motion is a switch; the device’s accessibility preference remains respected when the switch is off. These preferences are saved on this browser. Betting confirmations use blue for bet/raise, gold for all-in, green for call, and red for fold.
+
+Seats use neutral surfaces with colored action dots and borders. The acting player has a neutral outline and a Your turn or Acting label. Dark-mode menus and dialogs use charcoal while the table keeps its green felt.
+
+Seats use solid 3 px borders for betting status: blue for Bet/Raise, green for a matching Call, and gold for All-in. A confirmed fold leaves a compact gray marker with the player's name, chips, and Folded, at the same clockwise seat. Table cards and equity disappear for that player; Simulation's details remain available. The brief shrink is skipped with reduced motion and does not delay the next turn.

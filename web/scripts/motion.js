@@ -1,5 +1,5 @@
 const FX=(()=>{
- const TIME={shuffle:1200,chip:300,cue:200,winner:180,dealer:300,highlight:300,reveal:350,payout:250,collection:1500},MOVE='cubic-bezier(.77,0,.175,1)';
+ const TIME={fold:200,shuffle:1200,chip:300,cue:200,winner:180,dealer:300,highlight:300,reveal:350,payout:250,collection:1500},MOVE='cubic-bezier(.77,0,.175,1)';
  const enhanced=true;let epoch=0,timers=[],animations=[],nodes=[],cleanups=[],abortShuffle=null;
  const reduced=()=>Preferences.reduced();
  const on=()=>enhanced&&!reduced();
@@ -8,6 +8,10 @@ const FX=(()=>{
  function animate(el,frames,options){if(!el||!on())return;const a=el.animate(frames,options);animations.push(a);a.finished.catch(()=>{});return a;}
  function cue(el){animate(el,[{outline:'3px solid #e2b43c'},{outline:'3px solid transparent'}],{duration:TIME.cue});}
  function snapshot(mode,actor){return document.querySelectorAll(mode==='mp'?'.mp-oval .mp-seat':'#players .seat')[actor]?.getBoundingClientRect();}
+ function fold(mode,actor){
+  const seat=document.querySelectorAll(mode==='mp'?'.mp-oval .mp-seat':'#players .seat')[actor];
+  animate(seat?.querySelector('.fold-marker'),[{transform:'scale(1.18)',opacity:.65},{transform:'scale(1)',opacity:1}],{duration:TIME.fold,easing:MOVE});
+ }
  function contribution(mode,from,amount){if(!on()||!from||amount<=0)return;const to=document.querySelector(mode==='mp'?'#mp-community strong':'#sim-pot')?.getBoundingClientRect();if(!to)return;
  const chip=document.createElement('span');chip.className='fx-chip';chip.textContent='●';chip.setAttribute('aria-hidden','true');Object.assign(chip.style,{left:from.left+from.width/2+'px',top:from.top+from.height/2+'px'});document.body.append(chip);nodes.push(chip);
  const dx=to.left+to.width/2-from.left-from.width/2,dy=to.top-from.top-from.height/2;
@@ -105,5 +109,5 @@ const FX=(()=>{
  document.addEventListener('click',()=>{if(!abortShuffle)clear();},true);
  window.addEventListener('blur',clear);document.addEventListener('visibilitychange',()=>{if(document.hidden)clear();});
  document.addEventListener('DOMContentLoaded',install);
- return {get enhanced(){return enhanced;},clear,shuffle,winner,reveal,payoutGroups,snapshot,contribution,moveDealer,resetHighlights:()=>highlighted.clear(),lockDealing,unlockDealing};
+ return {dealEase:'cubic-bezier(.22,.7,.3,1)',get enhanced(){return enhanced;},clear,shuffle,winner,reveal,fold,payoutGroups,snapshot,contribution,moveDealer,resetHighlights:()=>highlighted.clear(),lockDealing,unlockDealing};
 })();
